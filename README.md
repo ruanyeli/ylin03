@@ -60,7 +60,7 @@ v2 prose is in `src/v2/copy.jsx` and must interpolate shared values: `scripts/ch
 
 ## Videos
 
-Recordings are **not in git** (`public/videos/` is ignored). Place them at these paths before building, or upload the same tree to a CDN and build with `VITE_MEDIA_BASE`. Posters and screenshots under `public/images/` are committed.
+Web-ready MP4 recordings under `public/videos/` are committed and copied into `dist/videos/` by Vite, so GitHub Pages deploys them with the site. Raw source material under `video_demo/` remains ignored. To serve recordings from a CDN instead, upload the same tree and build with `VITE_MEDIA_BASE`. Posters and screenshots under `public/images/` are committed.
 
 | Path under `public/videos/` | Source in `video_demo/` |
 |---|---|
@@ -89,7 +89,7 @@ ffmpeg -i IN -vf "scale='min(1920,iw)':-2" -r 30 -c:v libx264 -preset medium -cr
 - `src/v1/` — previous layout: `App.jsx`, `pages/`, `components/`, `data/` (prose), `styles/`
 - `src/v2/` — current layout: `App.jsx`, `Page.jsx`, `Sections.jsx`, `copy.jsx` (all prose), `components/`, `styles.css`
 - `scripts/check-v2-numbers.mjs` — build guard for hand-typed numbers in v2
-- `public/videos/{rd,office,frontend}` — demo recordings (not in git, see Videos)
+- `public/videos/{rd,office,frontend}` — demo recordings (committed for GitHub Pages, see Videos)
 - `public/images/{rd,office,frontend}` — poster frames and demo screenshots
 - `public/og-cover.png` — 1200×630 share card
 - `public/demos` — self-contained frontend demos opened from the page
