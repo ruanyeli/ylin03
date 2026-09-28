@@ -30,6 +30,7 @@ export const frontendDemos = [
   {
     id: 'aegean-garden', cat: 'tool', demo: 'aegean-garden', demoEn: true, video: video('frontend/aegean-garden'), poster: poster('frontend/aegean-garden'), size: [1920, 822], hue: ['#1f5fa8', '#d9468c'],
     title: t('Aegean Garden Planner', '爱琴海花园 · 花卉种植模拟器'),
+    shortTitle: t('Aegean Garden', '爱琴海花园'),
     body: t('A 3D garden planner in the colors of the Aegean: white walls, blue accents, terracotta, and bougainvillea. Soft shadows and open spacing keep the planting scene in focus.', '在白墙、赤陶与爱琴海蓝之间规划一座 3D 花园。九重葛的洋红点缀其中，浅浅的投影和舒展的留白，让植物与造景成为画面的中心。'),
   },
   {

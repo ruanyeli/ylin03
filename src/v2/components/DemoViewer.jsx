@@ -9,7 +9,6 @@ import TodoBadge from './TodoBadge'
 
 const categories = demoCategories.filter(c => c.id !== 'all')
 const ordered = categories.flatMap(c => frontendDemos.filter(d => d.cat === c.id))
-const pad = n => String(n).padStart(2, '0')
 
 function Thumb({ item }) {
   const src = item.poster ?? item.cover
@@ -36,11 +35,13 @@ function DemoFrame({ src, title }) {
   )
 }
 
-const DemoViewer = forwardRef(function DemoViewer({ actionsOverlay = false }, ref) {
+const DemoViewer = forwardRef(function DemoViewer(props, ref) {
   const tr = useTr()
   const language = useLanguageCode()
   const phone = useMediaQuery('(max-width: 719.98px)')
   const [selectedId, setSelectedId] = useState(frontendDemos[0].id)
+  const [category, setCategory] = useState('all')
+  const visibleItems = category === 'all' ? ordered : ordered.filter(d => d.cat === category)
   const [mode, setMode] = useState(null) // null = default for the item
   const [onScreen, setOnScreen] = useState(false)
   const [phoneLoaded, setPhoneLoaded] = useState(false)
@@ -52,7 +53,7 @@ const DemoViewer = forwardRef(function DemoViewer({ actionsOverlay = false }, re
   const view = item.pending ? 'pending' : (mode ?? (url ? 'demo' : 'video'))
 
   // Deep links select an item without loading it.
-  useImperativeHandle(ref, () => ({ select: id => { setSelectedId(id); setMode(null); setPhoneLoaded(false) } }), [])
+  useImperativeHandle(ref, () => ({ select: id => { setCategory('all'); setSelectedId(id); setMode(null); setPhoneLoaded(false); setPlayRecording(false) } }), [])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -70,13 +71,19 @@ const DemoViewer = forwardRef(function DemoViewer({ actionsOverlay = false }, re
     setPlayRecording(false)
   }
 
+  const selectCategory = id => {
+    setCategory(id)
+    if (id !== 'all' && item.cat !== id) select(ordered.find(d => d.cat === id).id)
+  }
+
   const onSheetKey = event => {
-    if (document.activeElement?.tagName === 'IFRAME') return
-    const delta = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+    const columns = getComputedStyle(sheetRef.current).gridTemplateColumns.split(' ').length
+    const delta = { ArrowRight: 1, ArrowDown: columns, ArrowLeft: -1, ArrowUp: -columns }[event.key]
     if (!delta) return
     event.preventDefault()
-    const index = ordered.findIndex(d => d.id === selectedId)
-    const next = ordered[(index + delta + ordered.length) % ordered.length]
+    const index = visibleItems.findIndex(d => d.id === selectedId)
+    const nextIndex = ((index + delta) % visibleItems.length + visibleItems.length) % visibleItems.length
+    const next = visibleItems[nextIndex]
     select(next.id)
     sheetRef.current?.querySelector(`[data-id="${next.id}"]`)?.focus()
   }
@@ -103,7 +110,6 @@ const DemoViewer = forwardRef(function DemoViewer({ actionsOverlay = false }, re
         <Thumb item={item} />
         {phone ? (
           <div className="v2-stage-phone">
-            {!actionsOverlay && <a className="v2-btn is-primary" href={url} target="_blank" rel="noopener noreferrer">{tr(FE.openInteractive)}</a>}
             <button type="button" className="v2-btn" onClick={() => setPhoneLoaded(true)}>{tr(FE.loadHere)}</button>
             {item.video && <button type="button" className="v2-btn" onClick={() => { setMode('video'); setPlayRecording(true) }}>{tr(FE.playRecording)}</button>}
           </div>
@@ -114,64 +120,63 @@ const DemoViewer = forwardRef(function DemoViewer({ actionsOverlay = false }, re
     )
   }
 
-  const kinds = [item.demo && tr(FE.interactive), item.video && tr(FE.recording)].filter(Boolean)
   return (
     <div className="v2-demos v2-wide">
-      <div className="v2-sheet" ref={sheetRef} onKeyDown={onSheetKey}>
-        {categories.map(cat => {
-          const items = frontendDemos.filter(d => d.cat === cat.id)
-          return (
-            <div key={cat.id} className="v2-sheet-group">
-              <p className="v2-label">{tr(cat.label)} · <span className="v2-num">{items.length}</span></p>
-              <div className="v2-sheet-items">
-                {items.map(d => (
-                  <button key={d.id} type="button" data-id={d.id} className="v2-sheet-item" aria-pressed={d.id === selectedId}
-                    tabIndex={d.id === selectedId ? 0 : -1} onClick={() => select(d.id)}>
-                    <span className="v2-thumb">
-                      <Thumb item={d} />
-                      {d.video && <span className="v2-thumb-play" aria-hidden="true">▶</span>}
-                      {d.pending && <span className="v2-thumb-todo"><TodoBadge /></span>}
-                    </span>
-                    <span className="v2-sheet-title">{tr(d.title)}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        })}
+      <div className="v2-demo-filters" role="group" aria-label={tr(FE.categoriesLabel)}>
+        {demoCategories.map(cat => (
+          <button key={cat.id} type="button" aria-pressed={category === cat.id} aria-controls="frontend-examples" onClick={() => selectCategory(cat.id)}>
+            {tr(cat.label)}
+            <span className="v2-demo-count v2-num">{cat.id === 'all' ? ordered.length : ordered.filter(d => d.cat === cat.id).length}</span>
+          </button>
+        ))}
+      </div>
+      <div id="frontend-examples" className="v2-sheet" role="group" aria-label={tr(FE.examplesLabel)} ref={sheetRef} onKeyDown={onSheetKey}>
+        {visibleItems.map(d => (
+          <button key={d.id} type="button" data-id={d.id} className="v2-sheet-item" aria-label={tr(d.title)} title={tr(d.title)} aria-pressed={d.id === selectedId}
+            tabIndex={d.id === selectedId ? 0 : -1} onClick={() => select(d.id)}>
+            <span className="v2-thumb">
+              <Thumb item={d} />
+              {d.video && <span className="v2-thumb-play" aria-hidden="true">▶</span>}
+              {d.pending && <span className="v2-thumb-todo"><TodoBadge /></span>}
+            </span>
+            <span className="v2-sheet-title">{tr(d.shortTitle ?? d.title)}</span>
+          </button>
+        ))}
       </div>
 
-      {!actionsOverlay && url && view !== 'pending' && !(phone && view === 'demo' && !phoneLoaded) && (
-        <p className="v2-stage-bar"><a className="v2-stage-open" href={url} target="_blank" rel="noopener noreferrer">{tr(FE.openShort)}</a></p>
-      )}
-      <div id="demo-figure" className="v2-stage v2-bleed" ref={stageRef}>
-        {stage}
-        {actionsOverlay && (
+      <div className="v2-demo-card">
+        <div id="demo-figure" className="v2-stage" ref={stageRef}>
+          {stage}
+          {/* Open in a new tab and copy link sit inside the stage, top right. */}
           <div className="v2-stage-overlay">
             {url && view !== 'pending' && <a className="v2-stage-open" href={url} target="_blank" rel="noopener noreferrer">{tr(FE.openShort)}</a>}
             <CopyLink id={item.id} />
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="v2-stage-info">
-        <p className="v2-kicker">
-          <span className="v2-num">{pad(ordered.indexOf(item) + 1)} / {pad(ordered.length)}</span> · {tr(demoCategories.find(c => c.id === item.cat).label)}
-          {kinds.length > 0 && <> · {kinds.join(' · ')}</>}
-        </p>
-        <h3>{tr(item.title)}</h3>
-        <p className="v2-stage-body">{rich(tr(item.body))}</p>
-        {view === 'demo' && <p className="v2-fine">{tr(FE.note)}</p>}
-        {(!actionsOverlay || (item.demo && item.video)) && <p className="v2-stage-actions">
-          {item.demo && item.video && (
-            <span className="v2-switch" role="group" aria-label={tr(FE.showAs)}>
-              <button type="button" aria-pressed={view === 'demo'} onClick={() => setMode('demo')}>{tr(FE.interactive)}</button>
-              <button type="button" aria-pressed={view === 'video'} onClick={() => { setMode('video'); setPlayRecording(true) }}>{tr(FE.recording)}</button>
-            </span>
-          )}
-          {!actionsOverlay && url && <a className="v2-link" href={url} target="_blank" rel="noopener noreferrer">{tr(FE.openNewTab)}</a>}
-          {!actionsOverlay && <CopyLink id={item.id} />}
-        </p>}
+        <div className="v2-stage-info">
+          <div className="v2-stage-heading">
+            <h3>{tr(item.title)}</h3>
+            {item.demo && item.video && (
+              <div className="v2-stage-actions" role="group" aria-label={tr(FE.showAs)}>
+                <button type="button" aria-pressed={view === 'demo'} onClick={() => setMode('demo')}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <path d="m4 3 7.5 18 2.5-7 7-2.5L4 3Z" />
+                  </svg>
+                  <span>{tr(FE.interactive)}</span>
+                </button>
+                <button type="button" aria-pressed={view === 'video'} onClick={() => { setMode('video'); setPlayRecording(true) }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="3" y="5" width="18" height="14" rx="3" />
+                    <path d="m10 9 5 3-5 3Z" fill="currentColor" stroke="none" />
+                  </svg>
+                  <span>{tr(FE.recording)}</span>
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="v2-stage-body">{rich(tr(item.body))}</p>
+        </div>
       </div>
     </div>
   )

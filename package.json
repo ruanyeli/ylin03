@@ -7,16 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite build && vite preview --host 0.0.0.0 --port 8080 --strictPort",
-    "start:v1": "BLOG_VERSION=v1 npm start"
+    "start": "vite build && vite preview --host 0.0.0.0 --port 8080 --strictPort"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "5.3.0",
-    "@fontsource-variable/fraunces": "5.3.0",
-    "@fontsource-variable/inter-tight": "5.3.0",
-    "@fontsource-variable/literata": "5.3.0",
-    "@fontsource-variable/merriweather": "5.3.0",
-    "@fontsource-variable/newsreader": "5.3.0",
     "@fontsource-variable/source-sans-3": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.0",
     "@vitejs/plugin-react": "4.3.4",

@@ -6,7 +6,8 @@ dist/
 *.log
 .DS_Store
 
-# Web-ready recordings in public/videos/ are committed for GitHub Pages.
-# Keep raw source material out of Git.
+# Demo recordings are not committed: they live in public/videos locally and on a CDN in
+# production (see README "Videos"). Raw source material stays in video_demo/.
+public/videos/
 video_demo/
 *.mov

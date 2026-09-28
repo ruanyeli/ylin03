@@ -6,14 +6,13 @@ export const links = {
   github: 'https://github.com/IQuestLab/IQuest-Q1',
   huggingface: 'https://huggingface.co/IQuestLab/IQuest-Q1',
   modelscope: 'https://www.modelscope.cn/IQuestLab/IQuest-Q1',
-  license: '#',
+  email: 'research@iquestlab.com',
 }
 
 export const downloads = [
   { id: 'huggingface', name: 'Hugging Face', body: t('Model weights and model card', '模型权重与模型卡') },
   { id: 'modelscope', name: t('ModelScope (pending)', 'ModelScope（待上线）'), body: t('Model weights and model card', '模型权重与模型卡') },
-  { id: 'github', name: 'GitHub', body: t('Inference code, examples, and issues', '推理代码、示例与问题反馈') },
-  { id: 'license', name: t('License', '许可证'), body: t('License terms to be confirmed', '许可证条款待确认') },
+  { id: 'github', name: 'GitHub', body: t('Inference code and examples', '推理代码与示例') },
 ]
 
 export const isPlaceholder = href => !href || href === '#'

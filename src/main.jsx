@@ -1,16 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-// Every page version lives in src/<version>/App.jsx and is loaded on demand, so only the
-// chosen version's code and styles reach the browser. The default is picked at build time
-// (BLOG_VERSION, else the newest version); `?v=v1` switches versions without a rebuild.
-const versions = import.meta.glob('./v*/App.jsx')
-const requested = new URLSearchParams(window.location.search).get('v')
-const version = versions[`./${requested}/App.jsx`] ? requested : __BLOG_VERSION__
-
-document.documentElement.dataset.blogVersion = version
+document.documentElement.dataset.blogVersion = 'v2'
 const RELOAD_KEY = 'iquest.chunkReload'
-versions[`./${version}/App.jsx`]().then(({ default: App }) => {
+import('./v2/App.jsx').then(({ default: App }) => {
   try { sessionStorage.removeItem(RELOAD_KEY) } catch { /* optional */ }
   createRoot(document.getElementById('root')).render(
     <StrictMode><App /></StrictMode>,

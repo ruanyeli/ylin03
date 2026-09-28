@@ -36,7 +36,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          BLOG_VERSION: v2
           SITE_URL: https://ruanyeli.github.io/ylin03/
 
       - name: Upload Pages artifact

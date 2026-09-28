@@ -13,7 +13,7 @@ export const model = {
   trainingTokens: '29T',
   scalingEfficiency: '1.93×',
   scalingBaseline: 'Qwen3-30B-A3B',
-  scalingBaselineArch: 'Qwen3', // "the standard Qwen3 architecture" in the report text
+  scalingBaselineArch: 'Qwen3-MoE', // "the standard Qwen3-MoE architecture" in the overview text
   stabilityCrossover: '572B',
   layers: '88',
   hiddenDim: '3,072',

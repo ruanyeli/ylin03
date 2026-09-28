@@ -3,7 +3,7 @@
 export const citationMeta = {
   org: 'IQuest Research',
   year: 2026,
-  title: 'IQuest-Q1: Advancing Agentic CLI Systems Towards Human-on-the-Loop RSI',
+  title: 'IQuest-Q1: Advancing Foundation Capabilities for Agentic CLI Systems',
   note: 'Technical Report',
 }
 
@@ -11,7 +11,7 @@ export const citationMeta = {
 export const reportRefs = { rsiFigure: '6', resultsTable: '2', resultsFigure: '1' }
 
 export const bibtex = `@misc{iquest2026q1,
-  title  = {IQuest-Q1: Advancing Agentic CLI Systems Towards Human-on-the-Loop RSI},
+  title  = {IQuest-Q1: Advancing Foundation Capabilities for Agentic CLI Systems},
   author = {{IQuest Research}},
   year   = {2026},
   note   = {Technical Report}

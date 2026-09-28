@@ -4,13 +4,15 @@ import '@fontsource-variable/source-sans-3/wght.css'
 import { useLanguage } from '../lib/hooks/useLanguage'
 import { LanguageContext } from '../lib/i18n'
 import Page from './Page'
+import Toc from './components/MimoToc'
 import './styles.css'
+import './components/MimoToc.css'
 
 export default function App() {
   const [language, toggleLanguage] = useLanguage()
   return (
     <LanguageContext.Provider value={language}>
-      <Page language={language} onToggleLanguage={toggleLanguage} />
+      <Page language={language} onToggleLanguage={toggleLanguage} Contents={Toc} siteLayout />
     </LanguageContext.Provider>
   )
 }

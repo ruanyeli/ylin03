@@ -7,7 +7,7 @@ import { rsiProgress } from './rsiProgress.js'
 export const rdRecordings = [
   {
     id: 'rsi-run', video: video('rd/rsi-run'), poster: poster('rd/rsi-run'), duration: '1:35', size: [1920, 1270],
-    tag: t('RSI loop', 'RSI 循环'),
+    tag: t('Case 4', '案例 4'),
     title: t('A human-on-the-loop RSI run', '一次人类监督下的 RSI 运行'),
     short: t('RSI run', 'RSI 运行'),
   },
@@ -20,7 +20,7 @@ export const rdRecordings = [
   {
     id: 'case-2', video: video('rd/case-2'), poster: poster('rd/case-2'), duration: '3:00', size: [1920, 1080], scaffold: 'Claude Code',
     tag: t('Case 2 · Claude Code', '案例 2 · Claude Code'),
-    title: t('When an environment fault looks like model failure', '环境出了故障，模型却被判为失败'),
+    title: t('When an environment fault looks like model failure', '模型发现任务执行环境问题，并且修复'),
     short: t('Environment fault', '环境故障'),
   },
   {

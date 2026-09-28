@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { frontendDemos, larkScenarios, rdRecordings } from '../shared'
+import { frontendDemos, larkScenarios } from '../shared'
 import { useActiveSection } from '../lib/hooks/useActiveSection'
 import { useMediaQuery } from '../lib/hooks/useMediaQuery'
 import { useDemoDeepLink, useExclusiveVideo } from '../lib/hooks/usePageBehaviour'
 import { useTr } from '../lib/i18n'
 import { AnnounceProvider } from './announce'
 import ArticleHeader from './components/ArticleHeader'
-import Citation from './components/Citation'
 import Footer from './components/Footer'
 import Quickstart from './components/Quickstart'
 import TopBar from './components/TopBar'
 import Toc from './components/Toc'
 import { rdCases, SECTION_ORDER, ui } from './copy'
 import { jumpTo } from './flash'
-import { Frontend, Office, Overview, RdCases, Results, Rsi, Training } from './Sections'
+import { Contact, Frontend, Limitations, Office, Overview, RdCases, Results, Training } from './Sections'
 
 const TOC_KEY = 'iquest.v2.toc'
 const BAR = 72 // sticky top bar plus a little air
-const SECTIONS = { overview: Overview, rsi: Rsi, training: Training, results: Results, 'rd-cases': RdCases, office: Office, frontend: Frontend, quickstart: Quickstart, citation: Citation }
+const SECTIONS = { overview: Overview, training: Training, results: Results, 'rd-cases': RdCases, office: Office, frontend: Frontend, quickstart: Quickstart, limitations: Limitations, contact: Contact }
 const recordedLark = larkScenarios.find(s => s.recordings)
 // Blocks the language switch keeps in place. Both languages render the same element tree,
 // so a block's index identifies it across the switch.
@@ -25,7 +24,7 @@ const BLOCKS = '.v2-article > :not(.v2-section), .v2-section > *'
 
 // Where ?demo=<id> should land: the element that shows that item.
 const targetOf = id =>
-  rdRecordings.some(r => r.id === id) ? 'rd-figure'
+  rdCases.items.some(r => r.id === id) ? 'rd-figure'
     : id === recordedLark.id ? 'lark-figure'
       : frontendDemos.some(d => d.id === id) ? 'demo-figure' : null
 
@@ -49,7 +48,7 @@ function useHashJump() {
   }, [])
 }
 
-export default function Page({ language, onToggleLanguage, Header = ArticleHeader, Navigation = TopBar, siteLayout = false, persistentToc = false, demoActionsOverlay = false }) {
+export default function Page({ language, onToggleLanguage, Header = ArticleHeader, Navigation = TopBar, Contents = Toc, siteLayout = false, persistentToc = false }) {
   const tr = useTr()
   const wideScreen = useMediaQuery('(min-width: 1280px)')
   const docked = wideScreen && !siteLayout
@@ -86,7 +85,7 @@ export default function Page({ language, onToggleLanguage, Header = ArticleHeade
   }, [tocShown])
 
   const select = useCallback(id => {
-    if (rdRecordings.some(r => r.id === id)) { setRdSelected(id); setRdAutoPlay(false) }
+    if (rdCases.items.some(r => r.id === id)) { setRdSelected(id); setRdAutoPlay(false) }
     else if (frontendDemos.some(d => d.id === id)) demoRef.current?.select(id)
     const target = targetOf(id)
     setTimeout(() => {
@@ -132,11 +131,6 @@ export default function Page({ language, onToggleLanguage, Header = ArticleHeade
     if (!docked) setDrawer(false)
     jumpTo(id, { flash: false })
   }, [docked])
-  const watchRun = () => {
-    setRdSelected('rsi-run')
-    setRdAutoPlay(false)
-    jumpTo('rd-figure')
-  }
   const onCut = id => {
     const video = document.querySelector('#lark-figure video')
     setCutAutoPlay(Boolean(video && !video.paused))
@@ -144,17 +138,16 @@ export default function Page({ language, onToggleLanguage, Header = ArticleHeade
   }
 
   const props = {
-    rsi: { onWatchRun: watchRun },
     'rd-cases': { selected: rdSelected, onSelect: (id, play) => { setRdSelected(id); setRdAutoPlay(play) }, autoPlay: rdAutoPlay },
     office: { cut, onCut, autoPlay: cutAutoPlay },
-    frontend: { demoRef, actionsOverlay: demoActionsOverlay },
+    frontend: { demoRef },
   }
 
   return (
     <AnnounceProvider>
       <div className={`v2-page${docked && tocVisible ? ' toc-docked' : ''}`}>
-        <Navigation language={language} onLanguage={onLanguage} tocVisible={tocVisible} tocDocked={docked} active={active} onOpenToc={openToc} />
-        <Toc collapsible={!persistentToc || !docked} docked={docked} visible={tocVisible} active={active} onNavigate={navigate} onHide={hideToc} />
+        <Navigation showTocControls={Contents === Toc} language={language} onLanguage={onLanguage} tocVisible={tocVisible} tocDocked={docked} active={active} onOpenToc={openToc} />
+        <Contents collapsible={!persistentToc || !docked} docked={docked} visible={tocVisible} active={active} onNavigate={navigate} onHide={hideToc} />
         <main className="v2-article">
           <Header />
           {SECTION_ORDER.map(id => {

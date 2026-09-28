@@ -1,13 +1,12 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
-# Build-time choices (all optional): page version, evaluation views, share-card host, media CDN.
-ARG BLOG_VERSION
+# Build-time choices (all optional): evaluation views, share-card host, media CDN.
 ARG VITE_EVAL_VIEWS
 ARG VITE_EVAL_EXPORTS
 ARG SITE_URL
 ARG VITE_MEDIA_BASE
-ENV BLOG_VERSION=$BLOG_VERSION VITE_EVAL_VIEWS=$VITE_EVAL_VIEWS VITE_EVAL_EXPORTS=$VITE_EVAL_EXPORTS SITE_URL=$SITE_URL VITE_MEDIA_BASE=$VITE_MEDIA_BASE
+ENV VITE_EVAL_VIEWS=$VITE_EVAL_VIEWS VITE_EVAL_EXPORTS=$VITE_EVAL_EXPORTS SITE_URL=$SITE_URL VITE_MEDIA_BASE=$VITE_MEDIA_BASE
 
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

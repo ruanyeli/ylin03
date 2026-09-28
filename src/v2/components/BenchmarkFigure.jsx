@@ -20,7 +20,7 @@ function toMarkdown(tr) {
     const name = row.source === 'figure' ? `${row.name} (${tr(B.sourceLabel.report)})` : row.name
     return `| ${name} | ${row.scores.map(formatScore).join(' | ')} |`
   })
-  return [head, sep, ...rows, '', tr(B.sourceNote)].join('\n')
+  return [head, sep, ...rows, '', ...B.sourceNote.map(tr)].join('\n')
 }
 
 function SourceTag() {
@@ -98,50 +98,83 @@ function DotPlot() {
   )
 }
 
-// Small multiples in the style of v1: one panel per benchmark, models sorted by score,
-// IQuest-Q1 highlighted.
+// Bar chart in the style of Figure 1 of the technical report (plot_benchmark_report_rounded.py):
+// one panel per benchmark, bars sorted by score, IQuest-Q1 highlighted, the report's y ranges,
+// no y axis.
+const PANEL_LIMITS = {
+  'Humanity’s Last Exam': [0, 50],
+  'Terminal-Bench 2.1': [20, 95],
+  'SWE-bench Pro': [0, 70],
+}
+const FINAL_LIMITS = { 'DeepSWE v1.1': [0, 80], NL2Repo: [0, 80], ProgramBench: [0, 90], 'Agents’ Last Exam': [0, 40] }
+
+// Rounded lower bound with headroom above the highest bar, then the report's per-panel overrides.
+function axisLimits(row) {
+  const known = reportedScores(row.scores)
+  const low = Math.min(...known), high = Math.max(...known)
+  const unit = high <= 10 ? 1 : 5
+  const span = Math.max(high - low, 3 * unit)
+  let ymin = Math.max(0, Math.floor((low - 0.2 * span) / unit) * unit)
+  let ymax = high + 0.16 * Math.max(high - ymin, 1)
+  const hl = row.scores[HL]
+  if (hl != null && 1 + known.filter(v => v > hl).length > 2) {
+    // Full zero-based range when IQuest-Q1 is below the top two.
+    ymin = 0
+    ymax = Math.ceil((high * 1.1) / 20) * 20
+  }
+  if (PANEL_LIMITS[row.name]) {
+    ;[ymin, ymax] = PANEL_LIMITS[row.name]
+    if (high >= ymax && row.name !== 'SWE-bench Pro') ymax = Math.ceil((high * 1.1) / 20) * 20
+  }
+  if (FINAL_LIMITS[row.name]) [ymin, ymax] = FINAL_LIMITS[row.name]
+  if (row.name === 'JobBench') ymax = 70
+  if (row.name === 'IQuest-CLIBench') ymax = 65
+  if (row.name === 'CyberGym') ymin = 50
+  return [ymin, ymax]
+}
+
 function BarPanel({ row }) {
   const [hover, setHover] = useState(null)
-  const order = row.scores.map((score, model) => ({ score, model })).filter(({ score }) => score != null)
-    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || (a.model === HL ? -1 : 1))
+  const [ymin, ymax] = axisLimits(row)
+  const at = v => `${(Math.min(Math.max(v, ymin), ymax) - ymin) / (ymax - ymin) * 100}%`
+  // Highest first; ties keep the sheet's order (the report lifts IQuest-Q1 only on Terminal-Bench 2.1).
+  const lift = model => (row.name === 'Terminal-Bench 2.1' && model === HL ? 0 : 1)
+  const order = row.listed.map(model => ({ score: row.scores[model], model }))
+    .sort((a, b) => b.score - a.score || lift(a.model) - lift(b.model))
   return (
-    <figure className="v2-barpanel" onMouseLeave={() => setHover(null)}>
-      <figcaption className="v2-barpanel-head">{row.name}{row.source === 'figure' && <SourceTag />}</figcaption>
-      <div className="v2-barpanel-plot">
+    <figure className="v2-vbar" style={{ '--n': order.length }} onMouseLeave={() => setHover(null)}>
+      <figcaption className="v2-vbar-title">{row.name}{row.source === 'figure' && <SourceTag />}</figcaption>
+      <div className="v2-vbar-plot">
         {order.map(({ score, model }) => {
           const name = B.models[model]
+          const logo = B.logos[name]
           return (
-            <div key={model} className={`v2-barpanel-row${model === HL ? ' is-hl' : ''}${score == null ? ' is-missing' : ''}`}
-              tabIndex={0} aria-label={`${name}: ${formatScore(score)}`}
+            <div key={model} className={`v2-vbar-col${model === HL ? ' is-hl' : ''}`} tabIndex={0} aria-label={`${name}: ${formatScore(score)}`}
               onMouseEnter={() => setHover(model)} onFocus={() => setHover(model)} onBlur={() => setHover(null)}>
-              <span className="v2-barpanel-name" title={name}>{B.shortModels[model]}</span>
-              <span className="v2-barpanel-track">
-                {score != null && <span className="v2-barpanel-bar" style={{ width: `${score}%` }} />}
-                <span className="v2-barpanel-value v2-num" style={{ left: `${score ?? 0}%` }}>{formatScore(score)}</span>
-              </span>
-              {hover === model && score != null && (
-                <span className="v2-tip v2-barpanel-tip" role="tooltip">
-                  <b>{name}</b> <span className="v2-num">{formatScore(score)}</span>
-                </span>
-              )}
+              <span className="v2-vbar-bar" style={{ height: at(score) }} />
+              <span className="v2-vbar-value v2-num" style={{ bottom: at(score) }}>{formatScore(score)}</span>
+              {logo && <span className="v2-vbar-logo"><img src={`./images/logos/${logo}.png`} alt="" loading="lazy" /></span>}
+              {hover === model && <span className="v2-tip v2-vbar-tip" role="tooltip"><b>{name}</b> <span className="v2-num">{formatScore(score)}</span></span>}
             </div>
           )
         })}
+      </div>
+      <div className="v2-vbar-names" aria-hidden="true">
+        {order.map(({ model }) => (
+          <span key={model} className={model === HL ? 'is-hl' : undefined}>
+            <span>{B.models[model]}</span>
+          </span>
+        ))}
       </div>
     </figure>
   )
 }
 
 function BarsView() {
-  const tr = useTr()
   return (
     <div className="v2-bars">
-      <div className="v2-dot-legend">
-        <span className="v2-dot-key is-hl"><span className="v2-bars-sw is-hl" />{B.models[HL]}</span>
-        <span className="v2-dot-key"><span className="v2-bars-sw" />{tr(R.otherModels)}</span>
-      </div>
-      {/* One grid for all benchmarks: two per row fills every row (no gaps between groups). */}
-      <div className="v2-bars-grid">
+      {/* Two rows, as in the report figure. */}
+      <div className="v2-bars-grid" style={{ '--cols': Math.ceil(B.rows.length / 2) }}>
         {B.rows.map(row => <BarPanel key={row.name} row={row} />)}
       </div>
     </div>
@@ -218,10 +251,10 @@ export default function BenchmarkFigure() {
   )
   const View = { bars: BarsView, dots: DotPlot, table: BarTable }[current]
   return (
-    <Figure id="results-figure" rule title={R.figureTitle} actions={switcher} className="v2-bench">
+    <Figure id="results-figure" actions={switcher} className="v2-bench">
       <View />
       <div className="v2-bench-foot">
-        <p>{tr(B.sourceNote)}</p>
+        {B.sourceNote.map((line, i) => <p key={i}>{tr(line)}</p>)}
         {(EVAL_EXPORTS.markdown || EVAL_EXPORTS.json) && (
           <p className="v2-bench-actions">
             {EVAL_EXPORTS.markdown && <CopyButton getText={() => toMarkdown(tr)} label={R.copyMarkdown} />}

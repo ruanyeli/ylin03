@@ -1,10 +1,10 @@
 // Deploy-time options for the v2 layout.
 
-// Evaluation views, in switch order. VITE_EVAL_VIEWS picks a subset at build time, e.g.
-// VITE_EVAL_VIEWS=bars,table; the first one is the default on desktop.
+// Evaluation views, in switch order. The bar chart alone by default (no switcher); VITE_EVAL_VIEWS
+// adds others at build time, e.g. VITE_EVAL_VIEWS=bars,dots,table; the first is the desktop default.
 const ALL_VIEWS = ['bars', 'dots', 'table']
 const requested = (import.meta.env.VITE_EVAL_VIEWS || '').split(',').map(v => v.trim()).filter(v => ALL_VIEWS.includes(v))
-export const EVAL_VIEWS = requested.length ? [...new Set(requested)] : ALL_VIEWS
+export const EVAL_VIEWS = requested.length ? [...new Set(requested)] : ['bars']
 
 // Phones open the compact table when it is offered.
 export const EVAL_PHONE_DEFAULT = EVAL_VIEWS.includes('table') ? 'table' : EVAL_VIEWS[0]
