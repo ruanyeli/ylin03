@@ -37,14 +37,15 @@ export const benchmarks = {
     'Scores from Figure 1 of the technical report, at the highest available reasoning effort for each model. Each benchmark compares the models reported for it; “—” means not compared. The orange dashed line marks the average of the compared models. All numbers will be updated with the final report.',
     '分数取自技术报告图 1，各模型均取其可用的最高推理强度。每个基准只比较报告中对应的模型，“—”表示未参与比较。橙色虚线为参与比较模型的平均分。所有数字将随正式报告更新。',
   ),
-  // Footnote under the v2 evaluation figure, one entry per line.
+  // Footnote under the v2 evaluation figure, one entry per paragraph.
+  // `backticks` render as code and \n as a line break.
   sourceNote: [
-    t('For each model, we report the publicly reported score; otherwise, we evaluate the model using the corresponding benchmark setup:',
-      '对于每个模型，我们采用其公开报告的分数；若无公开分数，则按相应基准的设置进行评测：'),
-    t('(1) Harness: For agentic coding tasks, we use mini-SWE-agent for DeepSWE v1.1, BasicAgent for PaperBench, and Claude Code for other tasks. For general agentic tasks, we use our internal harness for search agent tasks and Humanity’s Last Exam, and the benchmark-provided harnesses for other tasks.',
-      '（1）脚手架：智能体编程任务中，DeepSWE v1.1 使用 mini-SWE-agent，PaperBench 使用 BasicAgent，其余任务使用 Claude Code；通用智能体任务中，搜索智能体任务与 Humanity’s Last Exam 使用我们的内部脚手架，其余任务使用基准自带的脚手架。'),
-    t('(2) Runtime: We set six-hour limits for CyberGym and ProgramBench, eight hours for Terminal-Bench 2.1, ten hours for Terminal-Bench 3.0 and 4.0, and 12 hours for PaperBench.',
-      '（2）运行时长：CyberGym 与 ProgramBench 限时 6 小时，Terminal-Bench 2.1 限时 8 小时，Terminal-Bench 3.0 与 4.0 限时 10 小时，PaperBench 限时 12 小时。'),
+    t('IQuest-Q1 performance across benchmarks. DeepSeek-V4-Flash/Pro refer to the official 0731/0813 releases, respectively. Humanity’s Last Exam is reported without tools. IQuest-CLIBench is our in-house benchmark for CLI user experience.',
+      'IQuest-Q1 在各基准上的表现。DeepSeek-V4-Flash 与 DeepSeek-V4-Pro 分别指官方 0731 与 0813 版本。Humanity’s Last Exam 为不使用工具的成绩。IQuest-CLIBench 是我们用于评估 CLI 用户体验的内部基准。'),
+    t('For reproducibility, we recommend using a temperature of 1.0, top-p of 0.95, and top-k of 20, with Claude Code `2.1.140` or Codex `0.142` as the respective harness.',
+      '为便于复现，我们建议使用 temperature 1.0、top-p 0.95、top-k 20，并分别以 Claude Code `2.1.140` 或 Codex `0.142` 作为脚手架。'),
+    t('For each model, we report the publicly reported score; otherwise, we evaluate the model using the corresponding benchmark setup:\n(1) Harness: For agentic coding tasks, we use mini-SWE-agent for DeepSWE v1.1, and Claude Code for other tasks. For Agents’ Last Exam, we evaluate our model using Claude Code `2.1.258`. Because our models currently do not have multimodal capability, we replace multimodal content inputs in the agent conversation with placeholders during tokenization. (2) Runtime: We set six-hour limits for CyberGym, eight hours for Terminal-Bench 2.1.',
+      '对于每个模型，我们采用其公开报告的分数；若无公开分数，则按相应基准的设置进行评测：\n（1）脚手架：智能体编程任务中，DeepSWE v1.1 使用 mini-SWE-agent，其余任务使用 Claude Code。Agents’ Last Exam 上，我们使用 Claude Code `2.1.258` 评测我们的模型；由于我们的模型目前不具备多模态能力，我们在分词时将智能体对话中的多模态输入内容替换为占位符。（2）运行时长：CyberGym 限时 6 小时，Terminal-Bench 2.1 限时 8 小时。'),
   ],
   // Per-benchmark settings (from the model card's benchmark notes), listed by the v1 layout.
   harness: [

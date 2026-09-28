@@ -23,9 +23,6 @@ export const tocLabels = {
 
 // Chinese rendering of the report title for the zh page; citations keep the English title.
 const reportTitleZh = '提升智能体 CLI 系统的基础能力'
-// 1.93× scaling efficiency: the same loss for 1/1.93 ≈ 52% of the compute.
-const scalingFactor = M.scalingEfficiency.replace('×', '')
-const scalingComputePct = Math.round(100 / parseFloat(scalingFactor))
 
 export const ui = {
   contents: t('Contents', '目录'),
@@ -73,14 +70,14 @@ export const training = {
   title: t('Training to build agentic systems', '面向智能体系统的训练'),
   intro: t(
     'An agentic system has to carry a task through: gather information, call tools, read feedback, and recover from errors over many steps. Pre-training and mid-training lay the groundwork, shifting the data toward code and STEM and adding agentic trajectories with a longer context; three further stages build the agentic behavior itself.',
-    '一个成熟的智能体系统必须能够端到端地完成任务：不仅要收集信息、调用工具，还要理解反馈，并在多步执行出错时自我纠正。为了打好基础，预训练与中期训练的数据逐渐向代码和 STEM 领域倾斜，同时引入智能体轨迹、扩展上下文窗口。在此基础上，我们再通过三个阶段进一步塑造其行为模式。',
+    '一个智能体系统必须能够端到端地完成任务：不仅要收集信息、调用工具，还要理解反馈，并在多步执行出错时自我纠正。为了打好基础，预训练与中期训练的数据逐渐向代码和 STEM 领域倾斜，同时引入智能体轨迹、扩展上下文窗口。在此基础上，我们再通过三个阶段进一步塑造其行为模式。',
   ),
   notes: [
     [
       t('Synthetic environments', '合成环境'),
       t(
         'We synthesize tasks together with their environments: general-agent tasks on real APIs, MCP servers, and workspace files, and coding tasks in executable environments built from repositories.',
-        '我们将任务与环境一并合成：通用智能体任务基于真实的 API、MCP 服务与工作区文件，编程任务运行在基于代码仓库搭建的可执行环境中。',
+        '我们将任务与环境一并合成：通用智能体任务基于真实的 API、MCP 服务与工作区文件，编程任务运行则基于代码仓库搭建的可执行环境中。',
       ),
       'Synthetic environments',
     ],
@@ -96,17 +93,9 @@ export const training = {
       t('MOPD and model merging', 'MOPD 与模型融合'),
       t(
         'RL yields four experts: agentic user experience, multi-harness work, long-horizon tasks, and general agentic work. Multi-teacher on-policy distillation (MOPD) consolidates them into one student, initialized from the SFT checkpoint, which learns on its own trajectories while the matching expert scores each token. Stabilized model merging across stages and expert branches then folds the checkpoints into IQuest-Q1.',
-        '强化学习得到四个专家模型：智能体用户体验、多脚手架协作、长程任务与通用智能体任务。多教师在线策略蒸馏（MOPD）把它们整合进同一个从 SFT 检查点初始化的学生模型：学生模型在自己生成的轨迹上进行学习，并由匹配的专家模型对它的每一个 token 进行打分。稳定化模型融合贯穿各阶段与各专家分支，最终合并为 IQuest-Q1。',
+        '通过强化学习得到四个专家模型，覆盖这四个方面：智能体用户体验、多脚手架协作、长程任务与通用智能体任务。通过多教师在线策略蒸馏（MOPD）把它们整合进同一个学生模型。学生模型在自己生成的轨迹上进行学习，并由匹配的专家模型对它的每一个 token 进行打分。通过融合贯穿各阶段的专家与分支模型，最终合并为 IQuest-Q1。',
       ),
       'Multi-teacher on-policy distillation (MOPD) and stabilized model merging',
-    ],
-    [
-      t('Efficient at scale', '高效扩展'),
-      t(
-        `With a series of optimizations for scaling efficiency and stability, IQuest-Q1 achieves a favorable balance between the two. Under identical training data, IQuest-Q1 requires approximately ${scalingComputePct}% (i.e., 1/${scalingFactor}) of the training compute to reach the same training loss as a standard ${M.scalingBaselineArch} configuration.`,
-        `在引入一系列针对训练效率与稳定性的优化方案后，IQuest-Q1 在两者间取得了较好的平衡。在使用相同训练数据的条件下，达到与标准 ${M.scalingBaselineArch} 配置相同的训练损失时，IQuest-Q1 仅需约 ${scalingComputePct}%（即 1/${scalingFactor}）的训练算力。`,
-      ),
-      'Scaling efficiency',
     ],
   ],
 }
@@ -150,7 +139,7 @@ export const rdCases = {
     {
       id: 'case-2',
       title: t('Repair Execution Environment', '修复任务执行环境'),
-      lead: t('After an environment update, previously solvable tasks began receiving low rewards. IQuest-Q1 investigated the execution and grading pipeline in Claude Code.', '环境更新后，原本能完成的任务开始大量得低分。IQuest-Q1 在 Claude Code 中排查任务执行与评分流程。'),
+      lead: t('After an environment update, previously solvable tasks began receiving low rewards. IQuest-Q1 investigated the execution and grading pipeline in Claude Code.', '环境更新后，原本能完成的任务开始大量失败。IQuest-Q1 在 Claude Code 中排查任务执行与评分流程。'),
       notes: [
         [t('Cause', '原因'), t('Dependency, test-startup, and service-access faults caused some tasks to fail before the model’s patch ran. The grader counted these as model failures.', '依赖、测试启动与服务访问故障，使部分任务在补丁执行前就失败，并被计入模型的负奖励。')],
         [t('Fix', '修复'), t('Repair the environment, add health checks, and exclude confirmed infrastructure faults from policy updates. Genuine model failures still receive negative reward.', '修复环境并增加健康检查，将确认的基础设施故障排除出策略更新；模型自身的失败仍保留负奖励。')],
@@ -160,7 +149,7 @@ export const rdCases = {
     {
       id: 'case-3',
       title: t('Build Research Workbench', '搭建研发工作台'),
-      lead: t('A researcher asked IQuest-Q1 to build a workbench for inspecting research sessions—failed commands, logs, diffs, tests, and reports tied to the right code version—and then to repair a failed export from within that page.', '研究人员请 IQuest-Q1 搭建一个研发工作台，用来查看研发会话中的失败命令、日志、代码改动、测试和报告，并与对应代码版本绑定；随后在工作台上发起修复一个失败的导出任务。'),
+      lead: t('A researcher asked IQuest-Q1 to build a workbench for inspecting research sessions—failed commands, logs, diffs, tests, and reports tied to the right code version—and then to repair a failed export from within that page.', '研究人员想使用 IQuest-Q1 搭建一个研发工作台，用来查看研发会话中的失败命令、日志、代码改动、测试和报告，并与对应代码版本绑定；随后在工作台上发起修复一个失败的导出任务。'),
       notes: [
         [t('Cause', '原因'), t(<>The review-bundle export failed because some source files carried a modification time of 0 (1970), and Python’s <code>zipfile</code> rejects timestamps before 1980.</>, <>部分源文件的修改时间为 0（1970 年），而 Python 的 <code>zipfile</code> 不接受 1980 年之前的时间戳，导致评审包导出失败。</>)],
         [t('Fix', '修复'), t(<>A minimal change—<code>strict_timestamps=False</code> on the archive—plus a regression test with mixed modern and pre-1980 timestamps. Project data was left untouched.</>, <>只做最小改动——为归档设置 <code>strict_timestamps=False</code>，并补充一条混合新旧时间戳的回归测试；项目数据保持不变。</>)],
@@ -182,7 +171,7 @@ export const office = {
   title: t('Office work', '办公任务'),
   intro: t(
     <>Through <code>lark-cli</code>, IQuest-Q1 carries office work in Feishu from start to finish: it cross-checks chats and documents, makes evidence-based judgments, and delivers the follow-up—documents, decks, tasks, meetings, and notices.</>,
-    <>IQuest-Q1 可以通过 <code>lark-cli</code> 在飞书中完整处理办公任务：核对聊天记录与文档，做出基于事实的判断，并完成文档、幻灯片、任务、会议与通报等后续交付。</>,
+    <>IQuest-Q1 可以通过 <code>lark-cli</code> 在飞书中完整处理办公任务：核对聊天记录与文档，做出基于事实的判断，并完成文档、幻灯片、会议与通报等相关工作的后续交付。</>,
   ),
   cutsLabel: t('Recording', '录屏版本'),
   recorded: {
@@ -221,7 +210,7 @@ export const quickstart = {
   title: t('How to use', '快速开始'),
   intro: t(
     'IQuest-Q1 is released as an open-source model. Download the weights, serve them with an OpenAI-compatible engine, and call the model directly or run it in Claude Code or Codex.',
-    'IQuest-Q1 以开源模型形式发布。下载权重，用兼容 OpenAI 接口的推理引擎部署，即可直接调用，或在 Claude Code、Codex 中使用。',
+    '可以通过开源平台下载模型 IQuest-Q1。下载后用兼容 OpenAI 接口的推理引擎部署，即可直接调用，或在 Claude Code、Codex 中使用。',
   ),
   getTitle: t('Get the model', '获取模型'),
   serveTitle: t('Serve and call the model', '部署与调用'),
@@ -236,11 +225,11 @@ export const quickstart = {
 export const limitations = {
   title: t('Limitations', '局限性'),
   items: [
-    [t('Text-only input', '仅支持文本输入'), t('This checkpoint has no native image, audio, or video input capability.', '当前检查点不具备原生的图像、音频或视频输入能力。')],
-    [t('Output reliability', '输出可靠性'), t('Generated explanations and code can be incorrect. Review code changes and verify them with task-appropriate tests.', '生成的解释与代码可能有误。请审阅代码改动，并用适合任务的测试加以验证。')],
-    [t('Tool integration', '工具集成'), t('Tool calls use the IQuest-specific format in the chat template. Structured tool execution and reasoning extraction require compatible serving parsers and an agent harness.', '工具调用采用聊天模板中 IQuest 专用的格式。结构化的工具执行与推理内容提取，需要兼容的推理服务解析器与智能体脚手架。')],
-    [t('Challenges in Real-World CLI Tasks', '真实 CLI 任务中的挑战'), t('Real-world CLI tasks often require iterative debugging and verification. IQuest-Q1 may overlook constraints, repeat failed attempts, or leave issues unresolved, necessitating human oversight.', '真实的 CLI 任务往往需要反复调试与验证。IQuest-Q1 可能忽略约束、重复失败的尝试，或留下未解决的问题，因此仍需人工监督。')],
-    [t('Ongoing development', '持续开发中'), t('IQuest-Q1 remains at an early stage, with substantial limitations in its capabilities and reliability. Much work remains, and we still have a long way to go.', 'IQuest-Q1 仍处于早期阶段，能力与可靠性都存在明显局限。还有大量工作要做，我们仍有很长的路要走。')],
+    [t('Text-only input', '仅支持文本输入'), t('This checkpoint has no native image, audio, or video input capability.', '当前模型不具备原生的图像、音频或视频输入能力。')],
+    [t('Output reliability', '输出可靠性'), t('Generated explanations and code can be incorrect. Review code changes and verify them with task-appropriate tests.', '生成的解释与代码可能有误。请严格审阅代码的改动，并使用对应的测试加以验证。')],
+    [t('Tool integration', '工具集成'), t('Tool calls use the IQuest-specific format in the chat template. Structured tool execution and reasoning extraction require compatible serving parsers and an agent harness.', '工具调用推荐采用 IQuest 模版中专用的格式。')],
+    [t('Challenges in Real-World CLI Tasks', '真实 CLI 任务中的挑战'), t('Real-world CLI tasks often require iterative debugging and verification. IQuest-Q1 may overlook constraints, repeat failed attempts, or leave issues unresolved, necessitating human oversight.', '真实的 CLI 任务往往比较复杂。IQuest-Q1 可能忽略约束、重复失败的尝试，或留下未解决的问题，因此在使用后仍需人工检查。')],
+    [t('Ongoing development', '持续开发中'), t('IQuest-Q1 remains at an early stage, with substantial limitations in its capabilities and reliability. Much work remains, and we still have a long way to go.', 'IQuest-Q1 仍处于早期阶段，能力与可靠性都存在一定的局限。还有大量工作要做，我们仍有很长的路要走。')],
   ],
 }
 

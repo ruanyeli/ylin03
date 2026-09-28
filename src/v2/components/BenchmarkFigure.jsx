@@ -20,7 +20,17 @@ function toMarkdown(tr) {
     const name = row.source === 'figure' ? `${row.name} (${tr(B.sourceLabel.report)})` : row.name
     return `| ${name} | ${row.scores.map(formatScore).join(' | ')} |`
   })
-  return [head, sep, ...rows, '', ...B.sourceNote.map(tr)].join('\n')
+  return [head, sep, ...rows, '', B.sourceNote.map(tr).join('\n\n')].join('\n')
+}
+
+// A footnote paragraph: `backticks` become code, \n a line break.
+function NoteText({ text }) {
+  return text.split('\n').map((line, i) => (
+    <Fragment key={i}>
+      {i > 0 && <br />}
+      {line.split('`').map((part, j) => (j % 2 ? <code key={j}>{part}</code> : part))}
+    </Fragment>
+  ))
 }
 
 function SourceTag() {
@@ -254,7 +264,7 @@ export default function BenchmarkFigure() {
     <Figure id="results-figure" actions={switcher} className="v2-bench">
       <View />
       <div className="v2-bench-foot">
-        {B.sourceNote.map((line, i) => <p key={i}>{tr(line)}</p>)}
+        {B.sourceNote.map((line, i) => <p key={i}><NoteText text={tr(line)} /></p>)}
         {(EVAL_EXPORTS.markdown || EVAL_EXPORTS.json) && (
           <p className="v2-bench-actions">
             {EVAL_EXPORTS.markdown && <CopyButton getText={() => toMarkdown(tr)} label={R.copyMarkdown} />}
