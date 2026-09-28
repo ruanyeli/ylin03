@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="IQuest-Q1 technical report project page" />
+    <title>IQuest-Q1: Learning to Build the Next Model</title>
+    <script>
+      // Assets use relative paths, so a sub-path URL without a trailing slash
+      // (e.g. behind a proxy at /.../8080) would resolve them one level too high.
+      (function () {
+        var path = location.pathname
+        var last = path.slice(path.lastIndexOf('/') + 1)
+        if (last && last.indexOf('.') === -1) location.replace(path + '/' + location.search + location.hash)
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

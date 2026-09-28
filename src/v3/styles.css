@@ -1,0 +1,123 @@
+/* White research homepage inspired by iquestlab.github.io.
+   Loaded only by v3; shared report components retain their existing behavior. */
+:root {
+  --font-body: var(--font-sans);
+  --font-head: var(--font-sans);
+  --ink: #181e25;
+  --ink-2: #343b44;
+  --ink-3: #69717c;
+  --paper: #fff;
+  --paper-2: #f7f8fa;
+  --rule: #e2e5ea;
+  --w-text: 920px;
+  --wide-side: 70px;
+  --bar-h: 64px;
+  --r-media: 16px;
+  --r-ui: 8px;
+  --fs-body: 17px;
+  --lh-body: 29px;
+}
+html { scroll-behavior: smooth; }
+body { background: #fff; }
+.site-nav {
+  position: fixed; inset: 0 0 auto; z-index: 40; height: 64px;
+  display: flex; align-items: center; gap: 24px;
+  padding: 0 max(24px, calc((100vw - 1320px) / 2));
+  background: rgba(255,255,255,.93); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--rule); font-family: var(--font-ui);
+}
+.site-brand { display: flex; align-items: center; gap: 10px; color: var(--navy); text-decoration: none; white-space: nowrap; font-size: 22px; font-weight: 700; letter-spacing: -.7px; }
+.site-brand-lab { font-weight: 400; font-size: 16px; letter-spacing: 0; }
+.site-nav-tools { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.site-language { border: 1px solid var(--rule); border-radius: 999px; background: #fff; min-height: 36px; padding: 0 14px; font: 600 13px var(--font-ui); cursor: pointer; }
+.site-nav .v2-bar-toc { display: inline-flex; align-items: center; gap: 6px; flex: none; width: auto; min-height: 40px; padding: 0 10px; color: var(--navy); background: var(--navy-050); font: 600 13px/20px var(--font-ui); }
+.site-language { color: var(--navy); }
+.site-language:hover { background: var(--navy-050); border-color: var(--navy); }
+.v2-article { padding-top: var(--bar-h); }
+.site-hero {
+  grid-column: full !important; position: relative; isolation: isolate; overflow: hidden;
+  padding: 88px 24px 56px; text-align: center; background: #fff;
+}
+.site-hero-art { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.site-orbit { position: absolute; width: 900px; height: 430px; top: 60px; left: calc(50% - 450px); border: 1px solid rgba(0,59,130,.12); border-radius: 50%; transform: rotate(-24deg); }
+.site-orbit-two { width: 1050px; height: 480px; left: calc(50% - 525px); top: 40px; transform: rotate(24deg); border-color: rgba(0,175,236,.12); }
+.site-orbit-dot { position: absolute; top: 170px; left: calc(50% + 370px); width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 6px var(--cyan-050); }
+.site-eyebrow { font: 600 12px/20px var(--font-ui); letter-spacing: .18em; text-transform: uppercase; color: var(--navy); }
+html:lang(zh-CN) .site-eyebrow { text-transform: none; letter-spacing: .06em; }
+.site-hero h1 { max-width: none; margin: 22px 0 10px; font: 650 clamp(64px, 8vw, 104px)/1.08 var(--font-sans); letter-spacing: -.065em; color: var(--navy); }
+.site-hero-title { font-size: clamp(24px, 3vw, 36px); line-height: 1.5; letter-spacing: -.025em; font-weight: 500; color: var(--ink); }
+.site-hero-description { max-width: 670px; margin: 20px auto; font-size: 17px; line-height: 1.85; color: var(--ink-3); text-wrap: pretty; }
+.v2-section { padding: 68px 0; border-top: 1px solid #edf0f3; scroll-margin-top: 64px; }
+.v2-section:nth-of-type(odd) { background: #f7f8fa; }
+.v2-section > h2 { margin: 0 0 24px; font: 650 34px/1.4 var(--font-ui); letter-spacing: -.02em; color: var(--navy); }
+.v2-section > h2::before { display: none; }
+.v2-section > .v2-lede { color: var(--ink-3); max-width: 820px; }
+.v2-facts { gap: 0; margin: 4px 0 28px; padding: 26px 0; background: #fff; border: 1px solid var(--rule); border-radius: 16px; }
+.v2-facts > div { padding: 0 24px; }
+.v2-facts > div + div { border-left: 1px solid var(--rule); }
+.v2-facts dt { font-family: var(--font-ui); font-size: 36px; color: var(--navy); }
+.v2-contribs { list-style: none; padding: 0; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; counter-reset: feature; }
+.v2-contribs li { padding: 24px; border: 1px solid var(--rule); border-radius: 14px; background: #fff; font-size: 15px; line-height: 1.8; counter-increment: feature; }
+.v2-contribs li::before { content: '0' counter(feature); display: block; margin-bottom: 22px; color: var(--navy); font: 500 13px var(--font-mono); }
+.v2-contribs .v2-runin { display: block; margin-bottom: 8px; font-size: 18px; }
+.v2-contribs .v2-crosslink { display: block; margin-top: 16px; white-space: normal; }
+.v2-fig.has-rule { padding: 24px; border: 1px solid var(--rule); border-radius: 16px; background: #fff; box-shadow: 0 12px 36px #18253808; }
+.v2-rsi-controls, .v2-rsi-transcripts { max-width: var(--w-text); margin-inline: auto; }
+.v2-rsi-status { margin-top: 20px; min-height: 0; }
+.v2-rsi-transcripts { margin-top: 24px; }
+/* Inactive steps must not reserve space below the current dialogue. */
+.v2-rsi-transcript:not(.is-active) { display: none; }
+.v2-rsi-transcript { row-gap: 24px; }
+.v2-rsi-who { margin-bottom: 8px; }
+.v2-rsi-msg p:last-child { line-height: 28px; }
+.v2-rsi .v2-cap { margin-top: 24px; }
+.v2-rsi { margin-bottom: 28px; }
+.v2-stage-overlay { position: absolute; z-index: 5; top: 12px; right: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; max-width: calc(100% - 24px); padding: 6px; border: 1px solid var(--rule); border-radius: 10px; background: rgba(255,255,255,.94); backdrop-filter: blur(12px); box-shadow: 0 2px 12px #1825381a; }
+.v2-stage-overlay .v2-copylink { min-height: 32px; padding-inline: 10px; color: var(--navy); }
+@media (max-width: 719.98px) { .v2-stage-overlay .v2-copylink { min-height: 40px; } }
+.v2-player, .v2-stage { border: 1px solid var(--rule); box-shadow: 0 12px 36px #1825380d; }
+.v2-case { background: #fff; border: 1px solid var(--rule); border-radius: 14px; margin-top: 16px; padding: 24px; }
+.v2-tabs { gap: 10px; }
+.v2-tab { padding: 14px; border: 1px solid var(--rule); border-radius: 12px; background: #fff; }
+.v2-tab[aria-selected='true'] { border-color: var(--navy); background: var(--navy-050); }
+.v2-code { border-radius: 12px; background: #fff; overflow: hidden; }
+.v2-code-head { padding-block: 8px; background: #f4f6f9; }
+.v2-footer { width: min(1060px, calc(100% - 48px)); margin-top: 0; padding: 30px 0; }
+/* Size the case panel to the visible case instead of the longest hidden case. */
+#rd-cases .v2-stack > :not(.is-active) { display: none; }
+@media (min-width: 1280px) {
+  .v2-section > .v2-aside-row, .v2-section > .v2-stack { grid-column: text !important; }
+  .v2-aside-row { grid-template-columns: minmax(0,1fr); }
+  .v2-aside { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .v2-aside-row:not(.has-epigraph) > .v2-aside { margin-bottom: 0; }
+  .has-epigraph > .v2-aside { height: auto; }
+  .has-epigraph .v2-aside { margin-top: 20px; }
+  .v2-pulls { flex-direction: row; gap: 40px; }
+  /* Keep model-development scores beside the explanation, as in v2. */
+  #rd-cases { padding-bottom: 40px; }
+  #rd-cases .v2-aside-row { grid-template-columns: minmax(0, 1fr) var(--w-margin); }
+  #rd-cases .v2-aside { margin-top: 0; padding-top: 4px; border-top: 0; }
+  #rd-cases .v2-pulls { flex-direction: column; gap: 20px; }
+}
+@media (max-width: 719.98px) {
+  :root { --bar-h: 60px; --fs-body: 16px; --lh-body: 28px; }
+  .site-nav { height: 60px; padding-inline: 16px; gap: 8px; }
+  .site-brand { font-size: 20px; gap: 8px; }
+  .site-brand-lab { display: none; }
+  .site-nav-tools { gap: 8px; }
+  .site-hero { padding: 60px 20px 36px; }
+  .site-eyebrow { font-size: 10px; letter-spacing: .1em; }
+  .site-hero-description { font-size: 15px; }
+  .v2-section { padding: 42px 0; }
+  .v2-section > h2 { font-size: 26px; }
+  .v2-facts { padding-block: 20px; gap: 0; }
+  .v2-facts > div { padding-inline: 12px; }
+  .v2-facts dt { font-size: 27px; }
+  .v2-facts-unit { font-size: 12px; }
+  .v2-facts-label { font-size: 11px; }
+  .v2-contribs { grid-template-columns: 1fr; }
+  .v2-contribs li { padding: 20px; }
+  .v2-contribs li::before { margin-bottom: 12px; }
+  .v2-fig.has-rule { padding: 16px; }
+  .v2-bleed, .v2-wide .v2-bleed { margin-inline: 0; border-radius: 12px; }
+}

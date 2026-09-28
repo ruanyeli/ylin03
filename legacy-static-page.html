@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en" data-ui-lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQuest-Q1: Learning to Build the Next Model</title>
+    <meta name="description" content="IQuest-Q1 is an open-source agentic foundation model developed through Human-on-the-Loop Recursive Self-Improvement (RSI).">
+    <script>
+        // Resolve language before first paint: ?lang= > saved preference > browser language.
+        (function () {
+            var lang = "en";
+            try {
+                var q = new URLSearchParams(location.search).get("lang");
+                var saved = localStorage.getItem("iquest.lang");
+                if (q === "zh" || q === "en") lang = q;
+                else if (saved === "zh" || saved === "en") lang = saved;
+                else if ((navigator.language || "").toLowerCase().indexOf("zh") === 0) lang = "zh";
+            } catch (e) {}
+            document.documentElement.setAttribute("data-ui-lang", lang);
+            document.documentElement.setAttribute("lang", lang === "zh" ? "zh-CN" : "en");
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #181e25;
+            --bg-dark: #ffffff;
+            --bg-darker: #ffffff;
+            --bg-light: #f7f8fa;
+            --bg-card: rgba(255, 255, 255, 0.88);
+            --border-color: #dee2e9;
+            --text-primary: #181e25;
+            --text-secondary: #666666;
+            --text-muted: #8f97a3;
+            --accent: #2f8cff;
+            --accent-deep: #2f5f7f;
+            --accent-violet: #7c5cff;
+            --shadow-soft: 0 18px 45px rgba(17, 24, 39, 0.08);
+            --shadow-lift: 0 28px 80px rgba(17, 24, 39, 0.14);
+        }
+
+        /* Language switching: every bilingual node carries data-lang="en" or data-lang="zh". */
+        html[data-ui-lang="en"] [data-lang="zh"],
+        html[data-ui-lang="zh"] [data-lang="en"] {
+            display: none !important;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        section[id],
+        h3[id] {
+            scroll-margin-top: 84px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+                'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        code, pre, .mono {
+            font-family: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+        }
+
+        code {
+            font-size: 0.88em;
+            padding: 0.1em 0.4em;
+            border-radius: 6px;
+            background: rgba(24, 30, 37, 0.06);
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            height: 72px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header .container {
+            max-width: 1920px;
+            padding: 0 60px;
+            height: 100%;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            margin-right: auto;
+            color: var(--text-primary);
+        }
+
+        .logo-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: var(--primary-color);
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 15px;
+            padding: 8px 16px;
+            border-radius: 32px;
+            transition: color 0.3s ease, background-color 0.2s ease;
+        }
+
+        .header-link:hover {
+            background: var(--bg-light);
+        }
+
+        .nav-lang-toggle {
+            padding: 8px 14px;
+            border-radius: 32px;
+            border: 1px solid rgba(24, 30, 37, 0.12);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+        }
+
+        .nav-lang-toggle:hover {
+            background: var(--bg-light);
+            border-color: rgba(24, 30, 37, 0.18);
+        }
+
+        .nav-lang-toggle:active {
+            transform: translateY(1px);
+        }
+
+        .btn {
+            height: 44px;
+            padding: 0 1.2rem;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.92rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: 1px solid;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #ffffff;
+            border-color: var(--primary-color);
+            box-shadow: 0 14px 32px rgba(17, 24, 39, 0.18);
+        }
+
+        .btn-primary:hover {
+            background: #0f1319;
+            transform: translateY(-2px);
+            box-shadow: 0 18px 44px rgba(17, 24, 39, 0.24);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.85);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #ffffff;
+            border-color: var(--primary-color);
+        }
+
+        /* Floating section nav */
+        .release-section-nav {
+            position: fixed;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .release-section-toggle {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(24, 30, 37, 0.18);
+            background: rgba(255, 255, 255, 0.76);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(8px);
+            transition: transform 160ms ease, background-color 160ms ease;
+        }
+
+        .release-section-toggle:hover {
+            background: rgba(255, 255, 255, 0.92);
+            transform: translateY(-1px);
+        }
+
+        .release-section-nav-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid rgba(24, 30, 37, 0.12);
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.1);
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .release-section-link {
+            padding: 7px 10px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: rgba(24, 30, 37, 0.62);
+            border: 1px solid transparent;
+            transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .release-section-link:hover {
+            background: rgba(24, 30, 37, 0.05);
+            border-color: rgba(24, 30, 37, 0.12);
+            color: rgba(24, 30, 37, 0.82);
+        }
+
+        .release-section-link.is-active {
+            background: linear-gradient(90deg, rgba(124, 92, 255, 0.14), rgba(47, 140, 255, 0.1));
+            border-color: rgba(124, 92, 255, 0.22);
+            color: var(--text-primary);
+        }
+
+        .release-section-nav.is-collapsed .release-section-nav-inner {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(8px);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 3.5rem 0 2.75rem;
+            text-align: center;
+        }
+
+        .hero-kicker {
+            display: inline-block;
+            font-size: 0.85rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 1.25rem;
+            line-height: 1.2;
+        }
+
+        .hero h1 .highlight {
+            background: linear-gradient(135deg, #181e25, #2f8cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            margin: 0 auto 2rem;
+            max-width: 860px;
+            line-height: 1.8;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.85rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+
+        /* Sections */
+        section {
+            padding: 3.5rem 0;
+            background: var(--bg-darker);
+        }
+
+        section.alt {
+            background: var(--bg-light);
+            background-image:
+                radial-gradient(760px 440px at 18% 12%, rgba(24, 30, 37, 0.05), transparent 62%),
+                radial-gradient(900px 520px at 86% 0%, rgba(24, 30, 37, 0.04), transparent 62%),
+                repeating-linear-gradient(90deg, rgba(24, 30, 37, 0.025) 0 1px, transparent 1px 44px),
+                repeating-linear-gradient(0deg, rgba(24, 30, 37, 0.02) 0 1px, transparent 1px 44px);
+            background-repeat: no-repeat, no-repeat, repeat, repeat;
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-intro {
+            font-size: 1.08rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.8;
+        }
+
+        .subsection-title {
+            font-size: 1.45rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 3rem 0 1.25rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(47, 140, 255, 0.25);
+        }
+
+        .subsection-title:first-child {
+            margin-top: 0;
+        }
+
+        .prose {
+            max-width: 900px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .prose p + p {
+            margin-top: 0.8rem;
+        }
+
+        .prose strong,
+        .feature-desc strong,
+        .case-body strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-grid.cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .feature-grid.cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.6rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lift);
+            border-color: var(--primary-color);
+        }
+
+        .feature-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 30px;
+            height: 30px;
+            padding: 0 8px;
+            border-radius: 8px;
+            background: rgba(47, 140, 255, 0.1);
+            color: var(--accent-deep);
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.12rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .feature-desc + .feature-desc {
+            margin-top: 0.6rem;
+        }
+
+        /* Stats */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-card);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
+
+        .stat-grid.cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stat {
+            padding: 1.4rem 1.2rem;
+            text-align: center;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .stat:last-child {
+            border-right: none;
+        }
+
+        .stat-value {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value small {
+            font-size: 0.55em;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .stat-label {
+            margin-top: 0.4rem;
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .stat-note {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Figure placeholders */
+        .figure {
+            margin: 2rem 0 0;
+        }
+
+        .media-ph {
+            position: relative;
+            border: 1px dashed rgba(24, 30, 37, 0.22);
+            border-radius: 14px;
+            background:
+                repeating-linear-gradient(135deg, rgba(24, 30, 37, 0.025) 0 10px, transparent 10px 20px),
+                #fbfcfd;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .media-ph.wide {
+            aspect-ratio: 21 / 8;
+        }
+
+        .media-ph.short {
+            aspect-ratio: 16 / 7;
+        }
+
+        .media-ph.square {
+            aspect-ratio: 4 / 3;
+        }
+
+        .media-ph-tag {
+            font-size: 0.72rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(24, 30, 37, 0.14);
+            background: #ffffff;
+        }
+
+        .media-ph-label {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+        }
+
+        figcaption {
+            margin-top: 0.75rem;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        figcaption b {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Quote */
+        .quote {
+            max-width: 860px;
+            margin: 0 auto 2.5rem;
+            padding: 1.1rem 1.4rem;
+            border-left: 3px solid rgba(47, 140, 255, 0.45);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .quote p {
+            font-style: italic;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        .quote .quote-zh {
+            font-style: normal;
+            color: var(--text-secondary);
+            font-size: 0.93rem;
+            margin-top: 0.4rem;
+        }
+
+        .quote cite {
+            display: block;
+            margin-top: 0.5rem;
+            font-style: normal;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Numbered rules */
+        .rule-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+
+        .rule-list li {
+            counter-increment: rule;
+        }
+
+        /* Case study */
+        .case {
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-card);
+            box-shadow: var(--shadow-soft);
+            padding: 1.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .case-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.5rem 1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .case-title {
+            font-size: 1.22rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .case-tag {
+            font-size: 0.78rem;
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(47, 95, 127, 0.3);
+            color: var(--accent-deep);
+            background: rgba(47, 95, 127, 0.06);
+            white-space: nowrap;
+        }
+
+        .case-lead {
+            color: var(--text-secondary);
+            line-height: 1.75;
+            margin-bottom: 1.25rem;
+            max-width: 920px;
+        }
+
+        .case-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        .case-body dl {
+            display: grid;
+            grid-template-columns: 7.5rem minmax(0, 1fr);
+            gap: 0.85rem 1rem;
+        }
+
+        html[data-ui-lang="zh"] .case-body dl {
+            grid-template-columns: 5.5rem minmax(0, 1fr);
+        }
+
+        .case-body dt {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            padding-top: 1px;
+        }
+
+        .case-body dd {
+            font-size: 0.93rem;
+            line-height: 1.75;
+        }
+
+        .case-body dd ol,
+        .case-body dd ul {
+            padding-left: 1.2rem;
+        }
+
+        .case-body dd li + li {
+            margin-top: 0.3rem;
+        }
+
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 0 1.25rem;
+            font-size: 0.86rem;
+        }
+
+        .flow span {
+            padding: 4px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-primary);
+        }
+
+        .flow i {
+            font-style: normal;
+            color: var(--text-muted);
+        }
+
+        .case-side .stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-bottom: 1rem;
+            box-shadow: none;
+        }
+
+        .case-side .stat-grid .stat:nth-child(2n) {
+            border-right: none;
+        }
+
+        .case-side .stat-grid .stat:nth-child(n + 3) {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .case-side .stat-value {
+            font-size: 1.45rem;
+        }
+
+        .case-side .stat-grid.trio {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .case-side .stat-grid.trio .stat {
+            border-top: none;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .case-side .stat-grid.trio .stat:last-child {
+            border-right: none;
+            grid-column: auto;
+        }
+
+        /* Pipeline */
+        .pipeline {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--bg-card);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .pipe-step {
+            padding: 1.2rem 1.25rem;
+            border-right: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .pipe-step:last-child {
+            border-right: none;
+        }
+
+        .pipe-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            right: -7px;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            transform: translateY(-50%) rotate(45deg);
+            z-index: 1;
+        }
+
+        .pipe-stage {
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .pipe-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0.2rem 0 0.35rem;
+        }
+
+        .pipe-desc {
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 14px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            font-variant-numeric: tabular-nums;
+        }
+
+        thead {
+            background: var(--accent-deep);
+        }
+
+        th {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 0.84rem;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(24, 30, 37, 0.06);
+            white-space: nowrap;
+            font-size: 0.93rem;
+        }
+
+        tbody tr:hover {
+            background: rgba(47, 140, 255, 0.04);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        td.num,
+        th.num {
+            text-align: right;
+        }
+
+        td.ours {
+            background: rgba(47, 140, 255, 0.07);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        th.ours {
+            background: #24506d;
+        }
+
+        .row-group td {
+            background: rgba(24, 30, 37, 0.035);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.82rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .kv-table td:first-child {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .kv-table td:last-child {
+            text-align: right;
+        }
+
+        .wrap-cells td {
+            white-space: normal;
+            vertical-align: top;
+            line-height: 1.6;
+        }
+
+        .table-note {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        .formula {
+            margin-top: 0.75rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            background: rgba(24, 30, 37, 0.04);
+            color: var(--text-primary);
+            font-size: 0.86rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            overflow-wrap: anywhere;
+        }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            padding: 4px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .pending {
+            display: inline-block;
+            font-size: 0.76rem;
+            padding: 2px 9px;
+            border-radius: 999px;
+            border: 1px dashed rgba(24, 30, 37, 0.25);
+            color: var(--text-muted);
+            margin-left: 0.4rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 1.25rem;
+        }
+
+        .tab {
+            padding: 0.6rem 0.9rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--accent-deep);
+            color: #ffffff;
+            border-color: var(--accent-deep);
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .deliverables {
+            list-style: none;
+            counter-reset: dv;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem 1.5rem;
+        }
+
+        .deliverables li {
+            counter-increment: dv;
+            position: relative;
+            padding-left: 2rem;
+            font-size: 0.92rem;
+            line-height: 1.65;
+        }
+
+        .deliverables li::before {
+            content: counter(dv);
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 1.4rem;
+            height: 1.4rem;
+            border-radius: 6px;
+            background: rgba(47, 95, 127, 0.1);
+            color: var(--accent-deep);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .receipt {
+            display: block;
+            margin-top: 0.4rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 8px;
+            background: rgba(24, 30, 37, 0.05);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            white-space: normal;
+        }
+
+        /* Gallery */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+        }
+
+        .gallery-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lift);
+            border-color: var(--primary-color);
+        }
+
+        .gallery-card .media-ph {
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 0;
+        }
+
+        .gallery-info {
+            padding: 1rem 1.1rem 1.2rem;
+        }
+
+        .gallery-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 0.35rem;
+        }
+
+        .gallery-title {
+            font-size: 1.02rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .gallery-desc {
+            font-size: 0.88rem;
+            line-height: 1.65;
+        }
+
+        .gallery-card[hidden] {
+            display: none;
+        }
+
+        /* Citation */
+        .bibtex {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .bibtex pre {
+            background: #181e25;
+            color: #e6e9ee;
+            border-radius: 14px;
+            padding: 1.4rem 1.5rem;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e6e9ee;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-color);
+            padding: 2.5rem 0;
+            text-align: center;
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Fade-in */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(24px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-in {
+                animation: none;
+                opacity: 1;
+                transform: none;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 0 1.25rem;
+            }
+
+            header .container {
+                padding: 0 24px;
+            }
+
+            .feature-grid.cols-3,
+            .rule-list,
+            .gallery {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .case-layout,
+            .two-col {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .pipeline {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .pipe-step:nth-child(2) {
+                border-right: none;
+            }
+
+            .pipe-step:nth-child(n + 3) {
+                border-top: 1px solid var(--border-color);
+            }
+
+            .pipe-step::after {
+                display: none;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .release-section-nav {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                height: auto;
+                padding: 0.8rem 0;
+            }
+
+            header .container {
+                padding: 0 16px;
+            }
+
+            .container {
+                padding: 0 16px;
+            }
+
+            .header-content {
+                flex-wrap: wrap;
+                gap: 0.6rem;
+            }
+
+            .header-links {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+            }
+
+            .header-link {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+
+            .hero {
+                padding: 2.25rem 0 2rem;
+            }
+
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.65rem;
+            }
+
+            .section-intro {
+                font-size: 0.98rem;
+                margin-bottom: 1.75rem;
+            }
+
+            section {
+                padding: 2.25rem 0;
+            }
+
+            .feature-grid.cols-2,
+            .feature-grid.cols-3,
+            .rule-list,
+            .gallery,
+            .deliverables {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .stat-grid,
+            .stat-grid.cols-3 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .stat:nth-child(2n) {
+                border-right: none;
+            }
+
+            .stat:nth-child(n + 3) {
+                border-top: 1px solid var(--border-color);
+            }
+
+            .stat-grid.cols-3 .stat:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .case {
+                padding: 1.1rem;
+            }
+
+            .case-body dl,
+            html[data-ui-lang="zh"] .case-body dl {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0.2rem;
+            }
+
+            .case-body dd {
+                margin-bottom: 0.6rem;
+            }
+
+            .pipeline {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .pipe-step {
+                border-right: none;
+            }
+
+            .pipe-step:nth-child(n + 2) {
+                border-top: 1px solid var(--border-color);
+            }
+
+            .tabs {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .tab {
+                font-size: 0.8rem;
+                padding: 0.5rem 0.6rem;
+            }
+
+            td, th {
+                padding: 0.55rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            .hero-actions .btn {
+                flex: 1 1 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo" aria-label="IQuest Research">
+                    <span class="logo-mark">IQ</span>
+                    <span class="logo-text">IQuest Research</span>
+                </a>
+                <nav class="header-links" aria-label="Primary">
+                    <button id="lang-toggle-btn" type="button" class="nav-lang-toggle" aria-label="Switch language">中 / EN</button>
+                    <!-- TODO: replace placeholder links -->
+                    <a href="#" class="header-link" data-placeholder-link>GitHub</a>
+                    <a href="#" class="header-link" data-placeholder-link>Hugging Face</a>
+                    <a href="#" class="header-link" data-placeholder-link><span data-lang="en">Technical Report</span><span data-lang="zh">技术报告</span></a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Floating section nav -->
+    <nav class="release-section-nav is-collapsed" aria-label="Page sections">
+        <button id="release-nav-toggle" type="button" class="release-section-toggle" aria-expanded="false" aria-label="Toggle section navigation">☰</button>
+        <div class="release-section-nav-inner">
+            <a href="#overview" class="release-section-link" data-section-link="overview"><span data-lang="en">Overview</span><span data-lang="zh">概览</span></a>
+            <a href="#rsi" class="release-section-link" data-section-link="rsi"><span data-lang="en">Recursive Self-Improvement</span><span data-lang="zh">递归自我改进</span></a>
+            
+            <a href="#training" class="release-section-link" data-section-link="training"><span data-lang="en">Training</span><span data-lang="zh">训练流程</span></a>
+            <a href="#results" class="release-section-link" data-section-link="results"><span data-lang="en">Evaluation</span><span data-lang="zh">评测结果</span></a>
+            <a href="#rd-demos" class="release-section-link" data-section-link="rd-demos"><span data-lang="en">Model R&amp;D Cases</span><span data-lang="zh">模型研发案例</span></a>
+            <a href="#office" class="release-section-link" data-section-link="office"><span data-lang="en">Office Agent</span><span data-lang="zh">办公智能体</span></a>
+            <a href="#frontend" class="release-section-link" data-section-link="frontend"><span data-lang="en">Frontend Generation</span><span data-lang="zh">前端生成</span></a>
+            <a href="#citation" class="release-section-link" data-section-link="citation"><span data-lang="en">Citation</span><span data-lang="zh">引用</span></a>
+        </div>
+    </nav>
+
+    <main>
+    <!-- Hero -->
+    <section class="hero" id="top">
+        <div class="container">
+            <span class="hero-kicker fade-in">IQuest Research · <span data-lang="en">Technical Report</span><span data-lang="zh">技术报告</span> · 2026</span>
+            <h1 class="fade-in stagger-1">
+                <span data-lang="en">IQuest-Q1: <span class="highlight">Learning to Build the Next Model</span></span>
+                <span data-lang="zh">IQuest-Q1：<span class="highlight">让模型参与自身的改进</span></span>
+            </h1>
+            <p class="hero-subtitle fade-in stagger-2">
+                <span data-lang="en">
+                    IQuest-Q1 is an open-source model for coding and tool use. Through recursive self-improvement, each version helps diagnose its limits and develop the next, with researchers guiding experiments and reviewing results.
+                </span>
+                <span data-lang="zh">
+                    IQuest-Q1 是面向编程与工具使用的开源基础模型。它参与自身的研发：发现短板、执行实验，将有效改进带入下一轮迭代；研究人员把握方向并审核结果。
+                </span>
+            </p>
+            <div class="hero-actions fade-in stagger-3">
+                <a href="#" class="btn btn-primary" data-placeholder-link><span data-lang="en">Technical Report</span><span data-lang="zh">技术报告</span></a>
+                <a href="#" class="btn btn-secondary" data-placeholder-link>GitHub</a>
+                <a href="#" class="btn btn-secondary" data-placeholder-link>Hugging Face</a>
+                <a href="#results" class="btn btn-secondary"><span data-lang="en">Evaluation Results</span><span data-lang="zh">评测结果</span></a>
+            </div>
+
+            <div class="stat-grid fade-in stagger-3">
+                <div class="stat">
+                    <div class="stat-value">256 <small>/ 8</small></div>
+                    <div class="stat-label">
+                        <span data-lang="en">Routed experts, total / activated per token</span>
+                        <span data-lang="zh">路由专家总数 / 每 token 激活数</span>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">88</div>
+                    <div class="stat-label">
+                        <span data-lang="en">Transformer layers, hybrid SWA + GQA attention</span>
+                        <span data-lang="zh">Transformer 层，SWA 与 GQA 混合注意力</span>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">512K</div>
+                    <div class="stat-label">
+                        <span data-lang="en">Context via a 32K → 128K → 512K curriculum</span>
+                        <span data-lang="zh">上下文长度，经 32K → 128K → 512K 课程式扩展</span>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">1.34×</div>
+                    <div class="stat-label">
+                        <span data-lang="en">Scaling efficiency over the Qwen3-30B-A3B architecture, matched data</span>
+                        <span data-lang="zh">相对 Qwen3-30B-A3B 架构的扩展效率（相同数据）</span>
+                    </div>
+                </div>
+            </div>
+
+            <figure class="figure fade-in">
+                <div class="media-ph wide">
+                    <span class="media-ph-tag"><span data-lang="en">Figure placeholder</span><span data-lang="zh">图片占位</span></span>
+                    <span class="media-ph-label">
+                        <span data-lang="en">Figure 1 · IQuest-Q1 performance across benchmarks</span>
+                        <span data-lang="zh">图 1 · IQuest-Q1 在各基准上的表现</span>
+                    </span>
+                </div>
+                <figcaption>
+                    <span data-lang="en"><b>Figure 1.</b> IQuest-Q1 performance across different benchmarks. The dashed line marks the average score of the selected models.</span>
+                    <span data-lang="zh"><b>图 1.</b> IQuest-Q1 在不同基准上的表现。虚线表示所选对比模型的平均得分。</span>
+                </figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- Overview -->
+    <section id="overview" class="alt">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Overview</span><span data-lang="zh">概览</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">
+                    IQuest-Q1 is trained to work through tasks: gather context, use tools, check results, and recover from errors. Its capabilities span information work and repository-level software development.
+                </span>
+                <span data-lang="zh">
+                    IQuest-Q1 围绕完整的任务过程训练：理解上下文、调用工具、验证结果，并在出错后调整。能力覆盖信息处理、办公协作和代码开发。
+                </span>
+            </p>
+            <div class="feature-grid">
+                <div class="feature-card fade-in">
+                    <div class="feature-index">01</div>
+                    <h3 class="feature-title"><span data-lang="en">Models that contribute to their own development</span><span data-lang="zh">模型参与自身研发</span></h3>
+                    <p class="feature-desc">
+                        <span data-lang="en">Each iteration improves both the model and the tools used to develop it. Researchers review the results before carrying changes into the next round.</span>
+                        <span data-lang="zh">每轮迭代同时改进模型和研发工具。经过研究人员评审后，有效的模型更新、训练数据和实验流程会保留到下一轮。</span>
+                    </p>
+                </div>
+                <div class="feature-card fade-in stagger-1">
+                    <div class="feature-index">02</div>
+                    <h3 class="feature-title"><span data-lang="en">Coding and general-purpose tool use</span><span data-lang="zh">兼顾编程与通用任务</span></h3>
+                    <p class="feature-desc">
+                        <span data-lang="en">IQuest-Q1 combines code reasoning and repository-level development with information gathering and tool use. Its architecture is designed to support these tasks efficiently.</span>
+                        <span data-lang="zh">从理解代码、修改仓库，到查找信息、调用工具，IQuest-Q1 将这些能力融于同一模型，并通过架构设计降低计算开销。</span>
+                    </p>
+                </div>
+                <div class="feature-card fade-in stagger-2">
+                    <div class="feature-index">03</div>
+                    <h3 class="feature-title"><span data-lang="en">Training across agent frameworks</span><span data-lang="zh">在多种智能体框架中训练</span></h3>
+                    <p class="feature-desc">
+                        <span data-lang="en">A shared policy learns in Codex, Claude Code, and Terminus, using each framework’s own tools, context management, and interaction flow.</span>
+                        <span data-lang="zh">同一模型在 Codex、Claude Code 和 Terminus 等框架中学习，直接使用各自的工具接口、上下文管理方式和交互流程。</span>
+                    </p>
+                </div>
+                <div class="feature-card fade-in stagger-3">
+                    <div class="feature-index">04</div>
+                    <h3 class="feature-title"><span data-lang="en">Bringing specialist capabilities together</span><span data-lang="zh">整合不同领域的能力</span></h3>
+                    <p class="feature-desc">
+                        <span data-lang="en">Execution-verified tasks, supervised fine-tuning, specialized reinforcement learning, and multi-teacher distillation bring coding, reasoning, and general-agent skills into one model.</span>
+                        <span data-lang="zh">用实际执行来验证合成任务，结合监督微调、领域强化学习和多教师蒸馏，将编程、推理与通用智能体能力整合到一个模型中。</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RSI -->
+    <section id="rsi">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Recursive Self-Improvement, Guided by Researchers</span><span data-lang="zh">研究人员指导下的递归自我改进</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">
+                    Each RSI iteration improves both the model and the research process. Accepted model versions, training data, and tools become the starting point for the next round.
+                </span>
+                <span data-lang="zh">
+                    每轮 RSI 同时改进模型与研发流程。通过评审的模型版本、训练数据和工具，成为下一轮工作的起点。
+                </span>
+            </p>
+
+            
+
+            <h3 class="subsection-title"><span data-lang="en">Two connected cycles of improvement</span><span data-lang="zh">模型能力与研发方法，一同改进</span></h3>
+            <div class="feature-grid cols-2">
+                <div class="feature-card fade-in">
+                    <h4 class="feature-title"><span data-lang="en">Capability flywheel</span><span data-lang="zh">能力飞轮</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">The agent improves the <strong>model and training data</strong> to raise performance or reduce inference cost. Updates are evaluated under a fixed protocol before adoption.</span>
+                        <span data-lang="zh">智能体调整<strong>模型与训练数据</strong>，提高任务表现或降低推理成本。更新经过统一评测与人工评审后，再用于下一轮。</span>
+                    </p>
+                </div>
+                <div class="feature-card fade-in stagger-1">
+                    <h4 class="feature-title"><span data-lang="en">Development flywheel</span><span data-lang="zh">研发飞轮</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">The agent improves the <strong>research tools and workflows</strong>, turning lessons from experiments into reusable procedures.</span>
+                        <span data-lang="zh">智能体改进<strong>研发工具与流程</strong>，将实验中验证有效的做法整理为可复用步骤。</span>
+                    </p>
+                </div>
+            </div>
+            
+
+            <h3 class="subsection-title"><span data-lang="en">Where researchers make the decisions</span><span data-lang="zh">研究人员在哪些环节把关</span></h3>
+            
+            <ol class="rule-list">
+                <li class="feature-card fade-in">
+                    <div class="feature-index">1</div>
+                    <h4 class="feature-title"><span data-lang="en">Agree before execution</span><span data-lang="zh">先达成共识，再执行</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">Agree on the hypothesis, baseline, and resource budget before starting.</span>
+                        <span data-lang="zh">执行前，共同确定研究假设、对照方案和资源预算。</span>
+                    </p>
+                </li>
+                <li class="feature-card fade-in stagger-1">
+                    <div class="feature-index">2</div>
+                    <h4 class="feature-title"><span data-lang="en">Discuss before redirection</span><span data-lang="zh">先讨论，再调整方向</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">Revisit the plan when new evidence challenges its assumptions.</span>
+                        <span data-lang="zh">新发现动摇原有假设时，讨论是否调整或停止实验。</span>
+                    </p>
+                </li>
+                <li class="feature-card fade-in stagger-2">
+                    <div class="feature-index">3</div>
+                    <h4 class="feature-title"><span data-lang="en">Review before adoption</span><span data-lang="zh">先评审，再采纳</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">Review gains, regressions, and open questions before keeping an update.</span>
+                        <span data-lang="zh">对照基线审查收益、性能下降和未决问题，再决定是否保留更新。</span>
+                    </p>
+                </li>
+            </ol>
+
+            <figure class="figure fade-in">
+                <div class="media-ph short">
+                    <span class="media-ph-tag"><span data-lang="en">Figure placeholder</span><span data-lang="zh">图片占位</span></span>
+                    <span class="media-ph-label">
+                        <span data-lang="en">Figure 3 · Human-on-the-loop RSI system design and its benefits</span>
+                        <span data-lang="zh">图 3 · 人类监督下的 RSI 系统设计与实验结果</span>
+                    </span>
+                </div>
+            </figure>
+
+            <div class="stat-grid cols-3 fade-in" style="margin-top: 1.5rem;">
+                <div class="stat">
+                    <div class="stat-value">≈ +77%</div>
+                    <div class="stat-label"><span data-lang="en">PaperBench score, relative to its initial value</span><span data-lang="zh">PaperBench 得分，相对初始值</span></div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">≈ +59%</div>
+                    <div class="stat-label"><span data-lang="en">DeepSWE score, relative to its initial value</span><span data-lang="zh">DeepSWE 得分，相对初始值</span></div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">≈ −79%</div>
+                    <div class="stat-label"><span data-lang="en">Human refinements per iteration</span><span data-lang="zh">每轮迭代所需的人工修正次数</span></div>
+                </div>
+            </div>
+            <p class="stat-note">
+                <span data-lang="en">Observed changes across the RSI iterations described in the technical report.</span>
+                <span data-lang="zh">以上变化来自技术报告记录的多轮 RSI 实验。</span>
+            </p>
+
+            <h3 class="subsection-title" id="rsi-case"><span data-lang="en">An iteration in practice: learning different tool interfaces</span><span data-lang="zh">一次具体迭代：适应不同的工具接口</span></h3>
+            <article class="case fade-in">
+                <div class="case-head">
+                    <h4 class="case-title"><span data-lang="en">Improving tool use through mixed-schema training</span><span data-lang="zh">用混合格式训练改善工具调用</span></h4>
+                    <span class="case-tag"><span data-lang="en">Capability + development flywheel</span><span data-lang="zh">能力飞轮 + 研发飞轮</span></span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">A failed task exposed a mismatch between tool definitions and model calls. After data repair and mixed-schema training, the mean PaperBench-CodeDev score across all 20 tasks rose from 52.63% to 61.04%, a gain of 8.41 percentage points.</span>
+                    <span data-lang="zh">一次任务失败暴露了工具定义与模型调用不匹配的问题。修复数据并混合不同工具调用格式进行训练后，PaperBench-CodeDev 全部 20 题的均分从 52.63% 提升至 61.04%，提高了 8.41 个百分点。</span>
+                </p>
+                <div class="flow">
+                    <span data-lang="en">Diagnose</span><span data-lang="zh">问题定位</span><i>→</i>
+                    <span data-lang="en">Repair data</span><span data-lang="zh">数据修复</span><i>→</i>
+                    <span data-lang="en">Train</span><span data-lang="zh">模型训练</span><i>→</i>
+                    <span data-lang="en">Deploy &amp; evaluate</span><span data-lang="zh">部署评测</span>
+                </div>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Diagnosis</span><span data-lang="zh">问题</span></dt><dd><span data-lang="en">After 35 consecutive tool-call errors, the model audited 6,054 calls and found a bias toward one format and inconsistencies between tool definitions and arguments.</span><span data-lang="zh">连续 35 次工具调用错误后，模型抽查了 6,054 次调用，发现数据偏向单一格式，且工具定义与参数不一致。</span></dd>
+<dt><span data-lang="en">Repair</span><span data-lang="zh">修复</span></dt><dd><span data-lang="en">It repaired the data and mixed tool-call schemas for supervised fine-tuning on 44,464 trajectories. The run took 938.7 GPU hours.</span><span data-lang="zh">模型修复数据，并混合不同工具调用格式，用 44,464 条轨迹进行监督微调，消耗 938.7 GPU 小时。</span></dd>
+<dt><span data-lang="en">Human role</span><span data-lang="zh">人工参与</span></dt><dd><span data-lang="en">The model carried out diagnosis, repair, training, and evaluation. Key operations, including formal training, required human authorization.</span><span data-lang="zh">模型执行诊断、修复、训练与评测；正式训练等关键操作经研究人员授权后启动。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="stat-grid">
+                            <div class="stat">
+                                <div class="stat-value">52.63%</div>
+                                <div class="stat-label"><span data-lang="en">PaperBench-CodeDev, before</span><span data-lang="zh">PaperBench-CodeDev 修复前</span></div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">61.04%</div>
+                                <div class="stat-label"><span data-lang="en">PaperBench-CodeDev, after</span><span data-lang="zh">PaperBench-CodeDev 修复后</span></div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">6,054</div>
+                                <div class="stat-label"><span data-lang="en">Tool calls audited by the model</span><span data-lang="zh">模型抽查的工具调用次数</span></div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">938.7</div>
+                                <div class="stat-label"><span data-lang="en">GPU hours for the training run</span><span data-lang="zh">训练消耗 GPU 小时</span></div>
+                            </div>
+                        </div>
+                        <div class="media-ph square">
+                            <span class="media-ph-tag"><span data-lang="en">Media placeholder</span><span data-lang="zh">素材占位</span></span>
+                            <span class="media-ph-label">
+                                <span data-lang="en">Diagnosis trajectory and evaluation summary</span>
+                                <span data-lang="zh">问题定位轨迹与评测结果汇总</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    
+
+    <!-- Training -->
+    <section id="training">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Training Pipeline</span><span data-lang="zh">训练流程</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">Pre-training builds broad knowledge; mid-training adds reasoning, agent trajectories, and context extension to 512K. Post-training brings specialized capabilities into one model.</span>
+                <span data-lang="zh">预训练建立基础知识，中期训练加入推理与智能体轨迹，并将上下文扩展至 512K；后训练整合各领域能力。</span>
+            </p>
+
+            <div class="pipeline fade-in">
+                <div class="pipe-step">
+                    <div class="pipe-stage"><span data-lang="en">Stage 1</span><span data-lang="zh">阶段一</span></div>
+                    <div class="pipe-name"><span data-lang="en">Pre-training</span><span data-lang="zh">预训练</span></div>
+                    <div class="pipe-desc"><span data-lang="en">Diverse data for broad foundational knowledge.</span><span data-lang="zh">多样化数据，建立广泛的基础知识。</span></div>
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-stage"><span data-lang="en">Stage 2</span><span data-lang="zh">阶段二</span></div>
+                    <div class="pipe-name"><span data-lang="en">Pre-training</span><span data-lang="zh">预训练</span></div>
+                    <div class="pipe-desc"><span data-lang="en">Increased proportion of code data.</span><span data-lang="zh">提高代码数据占比。</span></div>
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-stage"><span data-lang="en">Stage 3</span><span data-lang="zh">阶段三</span></div>
+                    <div class="pipe-name"><span data-lang="en">Mid-training</span><span data-lang="zh">中期训练</span></div>
+                    <div class="pipe-desc"><span data-lang="en">Reasoning, agentic, and code data.</span><span data-lang="zh">推理、智能体与代码数据。</span></div>
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-stage"><span data-lang="en">Stage 4</span><span data-lang="zh">阶段四</span></div>
+                    <div class="pipe-name"><span data-lang="en">Post-training</span><span data-lang="zh">后训练</span></div>
+                    <div class="pipe-desc"><span data-lang="en">Thinking and Instruct variants.</span><span data-lang="zh">Thinking 与 Instruct 两个版本。</span></div>
+                </div>
+            </div>
+
+            <h3 class="subsection-title"><span data-lang="en">Post-training</span><span data-lang="zh">后训练</span></h3>
+            <div class="feature-grid cols-2">
+                <div class="feature-card fade-in">
+                    <h4 class="feature-title"><span data-lang="en">Large-scale, diverse task synthesis</span><span data-lang="zh">大规模多样化任务合成</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">Tasks cover tool use, coding, and reasoning. Reference solutions, code execution, tests, and proofs verify the synthesized data.</span>
+                        <span data-lang="zh">合成任务覆盖工具使用、编程与推理，通过参考解、代码执行、测试或证明验证数据质量。</span>
+                    </p>
+                    
+                </div>
+                <div class="feature-card fade-in stagger-1">
+                    <h4 class="feature-title"><span data-lang="en">Learning through task execution</span><span data-lang="zh">在任务执行中进行强化学习</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">A shared policy learns across agent frameworks. Failures are checked so infrastructure faults do not become misleading training feedback.</span>
+                        <span data-lang="zh">同一策略在多种智能体框架中学习。训练前区分模型错误与基础设施故障，避免无效反馈干扰学习。</span>
+                    </p>
+                    
+                </div>
+                <div class="feature-card fade-in">
+                    <h4 class="feature-title"><span data-lang="en">Multi-teacher on-policy distillation (MOPD)</span><span data-lang="zh">多教师在线策略蒸馏（MOPD）</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">Multi-teacher on-policy distillation combines Claude Code, multi-harness, long-horizon, and general-purpose specialists into one model.</span>
+                        <span data-lang="zh">通过多教师在线策略蒸馏（MOPD），将 Claude Code、多框架适配、长程任务与通用能力专家整合到同一模型。</span>
+                    </p>
+                    
+                    
+                </div>
+                <div class="feature-card fade-in stagger-1">
+                    <h4 class="feature-title"><span data-lang="en">Post-training infrastructure</span><span data-lang="zh">后训练基础设施</span></h4>
+                    <p class="feature-desc">
+                        <span data-lang="en">A shared runtime collects trajectories across frameworks, keeps tokens consistent between rollout and training, and supports asynchronous multi-teacher distillation.</span>
+                        <span data-lang="zh">统一运行环境汇集不同框架的轨迹，保证采样与训练的 token 一致，并支持异步多教师蒸馏。</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results -->
+    <section id="results" class="alt">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Evaluation</span><span data-lang="zh">评测结果</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">Agent performance depends on the tools and execution setup as well as the model. The scores below should be read together with the agent framework and evaluation protocol used for each result.</span>
+                <span data-lang="zh">智能体的表现同时受模型、工具和运行方式影响。阅读以下结果时，需要结合对应的智能体框架与评测协议。</span>
+            </p>
+
+            <h3 class="subsection-title"><span data-lang="en">Coding agent</span><span data-lang="zh">编程智能体</span></h3>
+            <div class="table-wrapper fade-in">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><span data-lang="en">Benchmark</span><span data-lang="zh">基准</span></th>
+                            <th class="num ours">IQuest-Q1-0922</th>
+                            <th class="num">GLM-5.3-Flash</th>
+                            <th class="num">DS-V4-Flash-0731</th>
+                            <th class="num">Claude-Opus-5</th>
+                            <th class="num">GPT-5.6-Sol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>DeepSWE v1.1</td><td class="num ours">56.6</td><td class="num">63.4</td><td class="num">40.7</td><td class="num">74</td><td class="num">73</td></tr>
+                        <tr><td>SWE-bench Verified</td><td class="num ours">81</td><td class="num">92.6</td><td class="num">95.2</td><td class="num">97</td><td class="num">96.2</td></tr>
+                        <tr><td>SWE-Bench Pro</td><td class="num ours">63.3</td><td class="num">52.8</td><td class="num">59.4</td><td class="num">—</td><td class="num">—</td></tr>
+                        <tr><td>SWE Atlas</td><td class="num ours">42.08</td><td class="num">43.7</td><td class="num">46.13</td><td class="num">63.17</td><td class="num">46.0</td></tr>
+                        <tr><td>NL2Repo-Bench</td><td class="num ours">—</td><td class="num">56.3</td><td class="num">51.1</td><td class="num">75.3</td><td class="num">56.8</td></tr>
+                        <tr><td>ProgramBench</td><td class="num ours">52.9</td><td class="num">58.6</td><td class="num">62.1</td><td class="num">41.5 (al)</td><td class="num">25.0 / 23 (al)</td></tr>
+                        <tr><td>CyberGym</td><td class="num ours">81.87</td><td class="num">81.62</td><td class="num">76.7</td><td class="num">78.1</td><td class="num">83.6</td></tr>
+                        <tr><td>SkillsBench</td><td class="num ours">61</td><td class="num">56.21</td><td class="num">72</td><td class="num">—</td><td class="num">—</td></tr>
+                        <tr><td>Terminal-Bench 2.1</td><td class="num ours">83.1</td><td class="num">84.3</td><td class="num">77.5</td><td class="num">82.4</td><td class="num">89.3</td></tr>
+                        <tr><td>Terminal-Bench 3.0</td><td class="num ours">11.4</td><td class="num">31.8</td><td class="num">11.8</td><td class="num">42.7</td><td class="num">34.6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="table-note">
+                <span data-lang="en">Values as reported in Table 2 of the current technical report draft; they will be updated with the final release. “—” indicates a result not yet reported. SWE-bench Multilingual, CLI-Bench, and Code Arena WebDev results are pending.</span>
+                <span data-lang="zh">数值取自当前技术报告草稿的表 2，正式发布时将同步更新。“—”表示尚未报告。SWE-bench Multilingual、CLI-Bench 与 Code Arena WebDev 的结果待发布。</span>
+            </p>
+
+            <div class="two-col" style="margin-top: 2rem;">
+                <div class="feature-card fade-in">
+                    <h4 class="feature-title"><span data-lang="en">Harness assignments</span><span data-lang="zh">脚手架配置</span></h4>
+                    <div class="table-wrapper" style="box-shadow: none;">
+                        <table class="wrap-cells">
+                            <tbody>
+                                <tr><td class="model-name">DeepSWE v1.1</td><td>Claude Code; mini-SWE-agent</td></tr>
+                                <tr><td>SWE-bench Verified / Multilingual</td><td>Claude Code; R2E-Gym</td></tr>
+                                <tr><td>SWE-Bench Pro</td><td><span data-lang="en">Claude Code, standard and “anti” setting (web search disabled)</span><span data-lang="zh">Claude Code，标准设置与禁用网页搜索的 anti 设置</span></td></tr>
+                                <tr><td>Terminal-Bench 2.1</td><td>Claude Code; Terminus 2</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="feature-card fade-in stagger-1">
+                    <h4 class="feature-title"><span data-lang="en">Benchmark-specific metrics</span><span data-lang="zh">特定基准的指标</span></h4>
+                    <ul class="feature-desc" style="padding-left: 1.1rem;">
+                        <li><span data-lang="en">PaperBench: average Replication Score across papers.</span><span data-lang="zh">PaperBench：各论文的平均复现得分（Replication Score）。</span></li>
+                        <li><span data-lang="en">CLI-Bench: composite Overall Score and pass<sup>k</sup>, stating k and the number of trials.</span><span data-lang="zh">CLI-Bench：综合得分 Overall Score 与 pass<sup>k</sup>，并注明 k 与试验次数。</span></li>
+                        <li><span data-lang="en">CADBench: Valid Shape Rate, volumetric and surface IoU, Chamfer Distance, and program compactness, reported separately.</span><span data-lang="zh">CADBench：分别报告有效形状率、体积与表面 IoU、Chamfer 距离和程序紧凑度。</span></li>
+                        <li><span data-lang="en">LiveCodeBench v6: code-generation pass@1 on the official release_v6 split.</span><span data-lang="zh">LiveCodeBench v6：官方 release_v6 划分上的代码生成 pass@1。</span></li>
+                        <li><span data-lang="en">Code Arena WebDev: official Arena Score with confidence interval, snapshot date, and vote count.</span><span data-lang="zh">Code Arena WebDev：官方 Arena Score 及其置信区间、榜单快照日期和投票数。</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 class="subsection-title"><span data-lang="en">General capabilities</span><span data-lang="zh">通用能力</span> <span class="pending"><span data-lang="en">Results pending</span><span data-lang="zh">结果待发布</span></span></h3>
+            <div class="chip-list fade-in">
+                <span class="chip">GDPval</span><span class="chip">Toolathlon</span><span class="chip">Claw-Eval</span><span class="chip">MCP-Atlas</span>
+                <span class="chip">AutomationBench</span><span class="chip">JobBench</span><span class="chip">Agents' Last Exam</span><span class="chip">τ³-Banking</span>
+                <span class="chip">BrowseComp</span><span class="chip">WideSearch</span><span class="chip">HLE w/ tools</span><span class="chip">IFBench</span>
+                <span class="chip">HealthBench Professional</span><span class="chip">IMO-AnswerBench</span><span class="chip">GPQA Diamond</span><span class="chip">LiveCodeBench v6</span>
+                <span class="chip">HLE (no tools)</span>
+            </div>
+
+            <h3 class="subsection-title"><span data-lang="en">Safety</span><span data-lang="zh">安全性</span> <span class="pending"><span data-lang="en">Results pending</span><span data-lang="zh">结果待发布</span></span></h3>
+            <p class="prose fade-in">
+                <span data-lang="en">Safety evaluation uses the Tulu 3 suite to measure both refusal of harmful requests and over-refusal of benign ones. Results are pending.</span>
+                <span data-lang="zh">安全性评测采用 Tulu 3 套件，同时考察有害请求的拒答与正常请求的误拒。结果待发布。</span>
+            </p>
+
+            <h3 class="subsection-title"><span data-lang="en">Defensive cybersecurity</span><span data-lang="zh">防御性网络安全</span></h3>
+            <p class="prose fade-in" style="margin-bottom: 1.25rem;">
+                <span data-lang="en">IQuest-Q1 scores 81.87 on CyberGym. In a three-day deployment, its agents produced <strong>30 vulnerability reports submitted through responsible disclosure</strong>.</span>
+                <span data-lang="zh">IQuest-Q1 在 CyberGym 上得分 81.87。在一次三天的部署中，模型智能体产出了 <strong>30 份通过负责任披露流程提交的漏洞报告</strong>。</span>
+            </p>
+            
+        </div>
+    </section>
+
+    <!-- R&D demos -->
+    <section id="rd-demos">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">IQuest-Q1 in Model Development</span><span data-lang="zh">IQuest-Q1 参与模型研发</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">Two examples from everyday RL development: tracing unusual reward curves back to faults in training and evaluation.</span>
+                <span data-lang="zh">两个日常研发案例：从奖励曲线异常出发，排查训练与评测中的故障。</span>
+            </p>
+
+            <article class="case fade-in">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">Case 1 · An extra space that broke multi-turn training</span><span data-lang="zh">案例 1 · 一个空格，让多轮训练只剩最后一轮</span></h3>
+                    <span class="case-tag">Claude Code CLI</span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">Working in Claude Code, IQuest-Q1 traced an unusual reward curve to an extra space in decoded text that left only the final turn in the training loss.</span>
+                    <span data-lang="zh">IQuest-Q1 在 Claude Code 中排查奖励异常，发现解码时多出的空格导致训练只覆盖最后一轮回答。</span>
+                </p>
+                <div class="flow">
+                    <span data-lang="en">Locate the issue</span><span data-lang="zh">定位问题</span><i>→</i>
+                    <span data-lang="en">Fix the bug</span><span data-lang="zh">修复 Bug</span><i>→</i>
+                    <span data-lang="en">Reward improves</span><span data-lang="zh">效果提升</span>
+                </div>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Cause</span><span data-lang="zh">原因</span></dt><dd><span data-lang="en">Extra spaces inserted during decoding broke prefix matching. Earlier turns remained in context but dropped out of the training loss.</span><span data-lang="zh">解码器额外插入的空格破坏了前缀匹配。前几轮回答仍在上下文中，却不再参与损失计算。</span></dd>
+<dt><span data-lang="en">Fix</span><span data-lang="zh">修复</span></dt><dd><span data-lang="en">Disable injected separator spaces while preserving generated whitespace, and keep streamed and stored text consistent.</span><span data-lang="zh">关闭额外分隔空格，保留模型生成的空白字符，并确保流式文本与存储轨迹一致。</span></dd>
+<dt><span data-lang="en">Result</span><span data-lang="zh">结果</span></dt><dd><span data-lang="en">Multi-turn training was restored. Mean reward rose from 0.704 to 0.769, reaching 0.799 later in training.</span><span data-lang="zh">多轮训练恢复，奖励均值从 0.704 升至 0.769，后续达到 0.799。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="stat-grid trio">
+                            <div class="stat">
+                                <div class="stat-value">0.704</div>
+                                <div class="stat-label"><span data-lang="en">Reward mean, before</span><span data-lang="zh">修复前均值</span></div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">0.769</div>
+                                <div class="stat-label"><span data-lang="en">After the fix</span><span data-lang="zh">修复后均值</span></div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">0.799</div>
+                                <div class="stat-label"><span data-lang="en">Later in training</span><span data-lang="zh">训练后段</span></div>
+                            </div>
+                        </div>
+                        <div class="media-ph square">
+                            <span class="media-ph-tag"><span data-lang="en">Media placeholder</span><span data-lang="zh">素材占位</span></span>
+                            <span class="media-ph-label">
+                                <span data-lang="en">Reward curve before and after the fix; Claude Code session recording</span>
+                                <span data-lang="zh">修复前后的 Reward 曲线；Claude Code 操作录屏</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="case fade-in">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">Case 2 · When an environment fault looks like model failure</span><span data-lang="zh">案例 2 · 环境出了故障，模型却被判为失败</span></h3>
+                    <span class="case-tag">Codex CLI</span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">After an environment update, previously solvable tasks began receiving low rewards. IQuest-Q1 investigated the execution and grading pipeline through Codex CLI.</span>
+                    <span data-lang="zh">环境更新后，原本能完成的任务开始大量得低分。IQuest-Q1 通过 Codex CLI 排查任务执行与评分流程。</span>
+                </p>
+                <div class="flow">
+                    <span data-lang="en">Cluster failures</span><span data-lang="zh">失败聚类</span><i>→</i>
+                    <span data-lang="en">Trace the timeline</span><span data-lang="zh">时间线排查</span><i>→</i>
+                    <span data-lang="en">Repair environment &amp; grading</span><span data-lang="zh">修复环境与评分</span><i>→</i>
+                    <span data-lang="en">Re-validate</span><span data-lang="zh">复验</span>
+                </div>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Cause</span><span data-lang="zh">原因</span></dt><dd><span data-lang="en">Dependency, test-startup, and service-access faults caused some tasks to fail before the model’s patch ran. The grader counted these as model failures.</span><span data-lang="zh">依赖、测试启动与服务访问故障，使部分任务在补丁执行前就失败，并被计入模型的负奖励。</span></dd>
+<dt><span data-lang="en">Fix</span><span data-lang="zh">修复</span></dt><dd><span data-lang="en">Repair the environment, add health checks, and exclude confirmed infrastructure faults from policy updates. Genuine model failures still receive negative reward.</span><span data-lang="zh">修复环境并增加健康检查，将确认的基础设施故障排除出策略更新；模型自身的失败仍保留负奖励。</span></dd>
+<dt><span data-lang="en">Validation</span><span data-lang="zh">验证</span></dt><dd><span data-lang="en">Re-run the same tasks and patches to check scoring recovery. Quantitative results remain pending; restored scoring is distinct from improved model capability.</span><span data-lang="zh">用同一批任务与补丁复验评分恢复情况。量化结果待补充，评分恢复与模型能力提升分别判断。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="media-ph square">
+                            <span class="media-ph-tag"><span data-lang="en">Media placeholder</span><span data-lang="zh">素材占位</span></span>
+                            <span class="media-ph-label">
+                                <span data-lang="en">Environment-fault ratio, valid-evaluation ratio, and reward recovery curves</span>
+                                <span data-lang="zh">环境故障占比、有效评测比例与 Reward 回升曲线</span>
+                            </span>
+                        </div>
+                        
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- Office agent -->
+    <section id="office" class="alt">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Working Across Lark</span><span data-lang="zh">在飞书中处理完整的工作任务</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">In a sandboxed Feishu workspace, IQuest-Q1 uses <code>lark-cli</code> to check chats and documents, make evidence-based judgments, and prepare the required follow-up.</span>
+                <span data-lang="zh">在飞书沙盘环境中，IQuest-Q1 通过 <code>lark-cli</code> 核对消息与文档，形成有依据的判断，再完成交付和进度同步。</span>
+            </p>
+
+            <div class="tabs" role="tablist" data-tabs="office">
+                <button class="tab active" role="tab" aria-selected="true" data-tab="office-1"><span data-lang="en">Data residency</span><span data-lang="zh">数据出境</span></button>
+                <button class="tab" role="tab" aria-selected="false" data-tab="office-2"><span data-lang="en">09·11 data incident</span><span data-lang="zh">09·11 数据事件</span></button>
+                <button class="tab" role="tab" aria-selected="false" data-tab="office-3"><span data-lang="en">09·17 API incident</span><span data-lang="zh">09·17 接口越权</span></button>
+                <button class="tab" role="tab" aria-selected="false" data-tab="office-4"><span data-lang="en">Training roster</span><span data-lang="zh">认证班名单</span></button>
+            </div>
+
+            <!-- Scenario 1 -->
+            <article class="case tab-panel active" id="office-1" role="tabpanel" style="margin-top: 0;">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">A customer question about cross-border data transfers</span><span data-lang="zh">客户问：数据会不会出境？</span></h3>
+                    <span class="case-tag"><span data-lang="en">Evidence-based decisions</span><span data-lang="zh">依据事实作出判断</span></span>
+                </div>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Situation</span><span data-lang="zh">背景</span></dt><dd><span data-lang="en">A customer needs to know whether its data can stay in mainland China, with technical measures and an SLA to support the commitment.</span><span data-lang="zh">客户需要确认数据能否留在中国大陆境内，以及相应的技术方案与 SLA 承诺。</span></dd>
+<dt><span data-lang="en">Task</span><span data-lang="zh">任务</span></dt><dd><span data-lang="en">Check the POC history and company policies; assess feasibility, timing, and cost; prepare options for sales and legal review.</span><span data-lang="zh">查阅 POC 历史与公司制度，评估可行性、周期和成本，形成方案供商务与法务审核。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="media-ph">
+                            <span class="media-ph-tag"><span data-lang="en">Video placeholder</span><span data-lang="zh">视频占位</span></span>
+                            <span class="media-ph-label"><span data-lang="en">Screen recording of the Feishu session</span><span data-lang="zh">飞书操作录屏</span></span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Scenario 2 -->
+            <article class="case tab-panel" id="office-2" role="tabpanel" style="margin-top: 0;">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">09·11 data incident: from investigation to follow-up</span><span data-lang="zh">09·11 数据事件：从事实核查到后续处置</span></h3>
+                    <span class="case-tag"><span data-lang="en">11 deliverables · 3 groups</span><span data-lang="zh">11 项交付 · 3 个群</span></span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">Production data appeared in a test table. The model acts as the data-platform lead to establish the facts and coordinate the response.</span>
+                    <span data-lang="zh">测试表中出现了生产数据。模型以数据平台负责人的身份核实事实，协调后续处置。</span>
+                </p>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Judgment</span><span data-lang="zh">判断</span></dt><dd><span data-lang="en">Reconcile engineering, compliance, and sales records to establish incident severity, discovery time, and notification duties.</span><span data-lang="zh">交叉核对技术、合规与商务记录，确定事件级别、发现时间和告知义务。</span></dd>
+<dt><span data-lang="en">Delivery</span><span data-lang="zh">交付</span></dt><dd><span data-lang="en">Prepare the review report, impact list, and remediation tasks; arrange a review meeting and send audience-specific notices.</span><span data-lang="zh">形成复盘报告、影响清单和整改任务，安排复盘会议，并向各方发送相应通报。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="media-ph">
+                            <span class="media-ph-tag"><span data-lang="en">Video placeholder</span><span data-lang="zh">视频占位</span></span>
+                            <span class="media-ph-label"><span data-lang="en">Screen recording and resulting documents, deck, and diagram</span><span data-lang="zh">操作录屏及产出的文档、幻灯片与链路图</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </article>
+
+            <!-- Scenario 3 -->
+            <article class="case tab-panel" id="office-3" role="tabpanel" style="margin-top: 0;">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">09·17 API incident: determining who needs to be notified</span><span data-lang="zh">09·17 接口越权：查清影响范围，及时同步进展</span></h3>
+                    <span class="case-tag"><span data-lang="en">12 deliverables · report as you go</span><span data-lang="zh">12 项交付 · 边做边报</span></span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">A customer received another customer’s record from the v1 API. The model must determine the scope and keep the response team informed.</span>
+                    <span data-lang="zh">客户通过 v1 接口读到了其他客户的记录。模型需要查清影响范围，并及时同步处置进展。</span>
+                </p>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Judgment</span><span data-lang="zh">判断</span></dt><dd><span data-lang="en">Establish which customers were affected and when they must be notified, using incident records and policy text.</span><span data-lang="zh">根据事件记录与制度原文，查清受影响客户及告知时限。</span></dd>
+<dt><span data-lang="en">Delivery</span><span data-lang="zh">交付</span></dt><dd><span data-lang="en">Prepare the incident report and remediation records. Update the response group and progress dashboard after each step.</span><span data-lang="zh">完成事件报告与整改记录，每一步完成后同步处置群和进度看板。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="media-ph">
+                            <span class="media-ph-tag"><span data-lang="en">Video placeholder</span><span data-lang="zh">视频占位</span></span>
+                            <span class="media-ph-label"><span data-lang="en">Progress receipts in the incident group and the dashboard</span><span data-lang="zh">处置群中的进度回执与进度看板</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </article>
+
+            <!-- Scenario 4 -->
+            <article class="case tab-panel" id="office-4" role="tabpanel" style="margin-top: 0;">
+                <div class="case-head">
+                    <h3 class="case-title"><span data-lang="en">Certification course: roster, seats, and make-up exam</span><span data-lang="zh">数据治理认证班：名单、席位和补考安排</span></h3>
+                    <span class="case-tag"><span data-lang="en">9 deliverables · multi-bot group</span><span data-lang="zh">9 项交付 · 多机器人协同</span></span>
+                </div>
+                <p class="case-lead">
+                    <span data-lang="en">The 16 names on a course sign-up sheet do not match classroom and exam-system records. The model must verify the roster before registration closes.</span>
+                    <span data-lang="zh">认证班报名表上的 16 人与场地、考试系统记录不符。模型需要在截止前核实名单。</span>
+                </p>
+                <div class="case-layout">
+                    <div class="case-body">
+                        <dl>
+                            <dt><span data-lang="en">Judgment</span><span data-lang="zh">判断</span></dt><dd><span data-lang="en">Reconcile sign-ups with registration records, separating confirmed, pending, and duplicate entries.</span><span data-lang="zh">将报名表与注册记录逐项核对，区分已确认、待审批与重复记录。</span></dd>
+<dt><span data-lang="en">Delivery</span><span data-lang="zh">交付</span></dt><dd><span data-lang="en">Update the source worksheet, publish a verified roster, and arrange follow-up tasks and make-up exams. Keep unconfirmed items open and personal details private.</span><span data-lang="zh">回写底表、整理正式名单，安排跟进任务与补考。未确认事项保留待办，个人隐私不对外公开。</span></dd>
+                        </dl>
+                    </div>
+                    <div class="case-side">
+                        <div class="media-ph">
+                            <span class="media-ph-tag"><span data-lang="en">Video placeholder</span><span data-lang="zh">视频占位</span></span>
+                            <span class="media-ph-label"><span data-lang="en">Worksheet write-back, roster, and group notices</span><span data-lang="zh">底表回写、名单与群内通报</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </article>
+        </div>
+    </section>
+
+    <!-- Frontend gallery -->
+    <section id="frontend">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">From a Brief to a Browser</span><span data-lang="zh">从一段需求，到可交互的网页</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">These examples explore how IQuest-Q1 turns written requirements into browser-based experiences, from games and personal tools to visual experiments. Each combines interface design with the code needed for interaction.</span>
+                <span data-lang="zh">从海底沙盒、落日赛车，到花园规划和星球探索，下面这些作品展示了 IQuest-Q1 如何将文字需求写成网页，把视觉设计与交互逻辑放在一起实现。</span>
+            </p>
+
+            <div class="filter-bar" role="group" aria-label="Filter demos">
+                <button class="tab active" data-filter="all"><span data-lang="en">All</span><span data-lang="zh">全部</span></button>
+                <button class="tab" data-filter="game"><span data-lang="en">Games</span><span data-lang="zh">游戏</span></button>
+                <button class="tab" data-filter="tool"><span data-lang="en">Personal tools</span><span data-lang="zh">个人工具</span></button>
+                <button class="tab" data-filter="design"><span data-lang="en">Design &amp; layout</span><span data-lang="zh">设计与布局</span></button>
+            </div>
+
+            <div class="gallery">
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>01</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Underwater Voxel City</span><span data-lang="zh">我的世界 · 海洋版</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A voxel city beneath the sea, with kelp forests, farms, and deep-sea creatures. Players mine, trade with villagers, and build habitats under breathable domes.</span>
+                            <span data-lang="zh">把方块世界搬到海底：海藻林、农场和深海生物围绕着可呼吸的穹顶。玩家可以挖矿、与村民交易，建造自己的水下栖息地。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>02</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Toy Soldiers: Multiplayer FPS</span><span data-lang="zh">玩具兵大战 · 多人 FPS</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A child’s bedroom becomes a miniature battlefield. Players face AI opponents among oversized furniture, with a character-preview lobby and an in-game display for health, weapons, and ammunition.</span>
+                            <span data-lang="zh">儿童房成了玩具兵的微缩战场。玩家在家具之间与 AI 对手交战，从大厅的角色预览进入第一人称视角，随时查看血量、武器和弹药。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>03</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Sunset Coast Racer</span><span data-lang="zh">落日飙车</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">Race along a sunset coast against AI drivers. Palm silhouettes and a purple-orange sky set the scene; a banking chase camera and collision shake give each turn a sense of motion.</span>
+                            <span data-lang="zh">沿着落日下的海岸赛道，与 AI 车手竞速。紫橙色天空和棕榈剪影铺开背景，跟随镜头随弯道倾斜，碰撞震动带来直观的驾驶反馈。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="tool">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>04</span><span data-lang="en">Personal tool</span><span data-lang="zh">个人工具</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Winter Study Bureau</span><span data-lang="zh">凛冬督学局</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A study timer with a military-camp theme. Webcam inspections flag distractions, while study time earns coins for furnishing a personal barracks. Pomodoro and open-ended sessions support different study routines.</span>
+                            <span data-lang="zh">用军营主题把专注学习做成小游戏：督学官通过摄像头巡查，记录分心行为；学习时长换成军工币，用来布置自己的营房。支持番茄钟和不限时学习。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="tool">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>05</span><span data-lang="en">Personal tool</span><span data-lang="zh">个人工具</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Aegean Garden Planner</span><span data-lang="zh">爱琴海花园 · 花卉种植模拟器</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A 3D garden planner in the colors of the Aegean: white walls, blue accents, terracotta, and bougainvillea. Soft shadows and open spacing keep the planting scene in focus.</span>
+                            <span data-lang="zh">在白墙、赤陶与爱琴海蓝之间规划一座 3D 花园。九重葛的洋红点缀其中，浅浅的投影和舒展的留白，让植物与造景成为画面的中心。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>06</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Tactical Outpost FPS</span><span data-lang="zh">致命召唤 · FPS 小游戏</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A browser FPS set in a low-poly military outpost. Weapon swaps, shell casings, headshot indicators, and a red damage vignette provide immediate feedback during combat.</span>
+                            <span data-lang="zh">在低多边形军事据点中展开第一人称对战。切枪、抛壳、爆头提示与受击时的红色晕影，让每次操作都有清晰反馈。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>07</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Subway Station FPS</span><span data-lang="zh">地铁 FPS</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A subway station becomes the setting for a first-person shooter. Multiple weapons, visible tracers, recoil, muzzle flashes, and sound effects bring the 3D scene into play.</span>
+                            <span data-lang="zh">以 3D 地铁站为场景的第一人称射击游戏。玩家切换武器应对敌人，弹道、后坐力、枪口火光和音效共同构成战斗体验。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>08</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Anti-Gravity Racing</span><span data-lang="zh">反重力竞速</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A hovercraft races along a suspended track in deep space. The white-and-orange vehicle banks into turns, leaving blue thruster trails and white speed lines behind it.</span>
+                            <span data-lang="zh">白橙相间的悬浮赛车沿深空轨道疾驰，过弯时车身向一侧倾斜。淡蓝推进光带与白色速度线拖在身后，勾出行驶的轨迹。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="tool">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>09</span><span data-lang="en">Personal tool</span><span data-lang="zh">个人工具</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Lunar Rover Console</span><span data-lang="zh">月海探测器</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">Explore a lunar landscape from follow, side, overhead, and front cameras. A mythology-inspired console tracks mission goals, power, temperature, wheel load, and alerts as the rover moves across craters and rocks.</span>
+                            <span data-lang="zh">驾驶巡视车穿过灰沙、陨石坑与岩石，在跟随、侧视、俯视和正面镜头间切换。东方神话风格的控制台同步显示任务、电量、温度、车轮载荷与告警。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="game">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>10</span><span data-lang="en">Game</span><span data-lang="zh">游戏</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Steel Line FPS</span><span data-lang="zh">钢铁防线 FPS</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A browser FPS with two weapons, aim-down-sights, reloading, and headshot feedback. A low-poly industrial setting and compact tactical display frame the action.</span>
+                            <span data-lang="zh">在工业军事场景中移动、瞄准和射击，支持双武器切换、开镜、换弹与爆头反馈。低多边形场景配合紧凑的战术界面，构成可在浏览器中游玩的 FPS。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="tool">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>11</span><span data-lang="en">Personal tool</span><span data-lang="zh">个人工具</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Retro Solar System Explorer</span><span data-lang="zh">太阳系复古探索仪</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">Browse the Sun and eight planets in an interface inspired by early electronic star charts. Rotating 3D planets, data cards, and exploration histories sit inside retro display frames.</span>
+                            <span data-lang="zh">像走进一座旧时科技馆，依次浏览太阳与八大行星。复古电子星图界面中，3D 星球模型、天体资料和探测历史随选择切换。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="design">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>12</span><span data-lang="en">Design &amp; layout</span><span data-lang="zh">设计与布局</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Brutalist 3D Music Player</span><span data-lang="zh">粗野主义 3D 音乐播放器</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A music player built around a draggable 3D wireframe with album labels on its faces. Black backgrounds, monospaced type, and hard borders carry through the library, track details, and video views.</span>
+                            <span data-lang="zh">将专辑放在线框几何体上，拖动旋转即可浏览。纯黑背景、等宽字体和硬线边框贯穿曲库、详情与视频视图，形成克制的粗野主义风格。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="gallery-card" data-cat="design">
+                    <div class="media-ph"><span class="media-ph-tag"><span data-lang="en">Demo placeholder</span><span data-lang="zh">演示占位</span></span></div>
+                    <div class="gallery-info">
+                        <div class="gallery-meta"><span>13</span><span data-lang="en">Design &amp; layout</span><span data-lang="zh">设计与布局</span></div>
+                        <h4 class="gallery-title"><span data-lang="en">Four-Cylinder Engine</span><span data-lang="zh">四缸发动机</span></h4>
+                        <p class="gallery-desc">
+                            <span data-lang="en">A four-cylinder engine simulation rendered in the comic-book style of <em>Spider-Man: Into the Spider-Verse</em>. Bold primary colors and sharp contrasts make the mechanical motion the focus.</span>
+                            <span data-lang="zh">用《蜘蛛侠：平行宇宙》式的漫画风格呈现四缸发动机运转。鲜明的原色与强烈对比，让机械运动成为画面的主角。</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Citation -->
+    <section id="citation" class="alt">
+        <div class="container">
+            <h2 class="section-title"><span data-lang="en">Citation</span><span data-lang="zh">引用</span></h2>
+            <p class="section-intro">
+                <span data-lang="en">If you find IQuest-Q1 useful in your research, please cite the technical report.</span>
+                <span data-lang="zh">如果 IQuest-Q1 对您的研究有帮助，欢迎引用我们的技术报告。</span>
+            </p>
+            <div class="bibtex">
+                <button class="copy-btn" type="button" id="copy-bibtex"><span data-lang="en">Copy</span><span data-lang="zh">复制</span></button>
+                <pre id="bibtex-text">@misc{iquest2026q1,
+  title  = {IQuest-Q1: Crystalizing Recursive Self-Improvement for Agentic Model},
+  author = {{IQuest Research}},
+  year   = {2026},
+  note   = {Technical Report}
+}</pre>
+            </div>
+        </div>
+    </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p class="copyright">© 2026 IQuest Research. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const LANG_KEY = "iquest.lang";
+        const TITLES = {
+            en: "IQuest-Q1: Learning to Build the Next Model",
+            zh: "IQuest-Q1：让模型参与自身的改进",
+        };
+
+        function applyLang(lang) {
+            const root = document.documentElement;
+            root.setAttribute("data-ui-lang", lang);
+            root.setAttribute("lang", lang === "zh" ? "zh-CN" : "en");
+            document.title = TITLES[lang];
+            const btn = document.getElementById("lang-toggle-btn");
+            if (btn) btn.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切换到中文");
+            try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+        }
+
+        function initLang() {
+            applyLang(document.documentElement.getAttribute("data-ui-lang") === "zh" ? "zh" : "en");
+            document.getElementById("lang-toggle-btn").addEventListener("click", () => {
+                const next = document.documentElement.getAttribute("data-ui-lang") === "zh" ? "en" : "zh";
+                applyLang(next);
+                const url = new URL(location.href);
+                url.searchParams.set("lang", next);
+                history.replaceState(null, "", url);
+            });
+        }
+
+        function initSectionNav() {
+            const nav = document.querySelector(".release-section-nav");
+            const toggle = document.getElementById("release-nav-toggle");
+            const links = Array.from(document.querySelectorAll("[data-section-link]"));
+            if (!nav || !toggle || !links.length) return;
+
+            toggle.addEventListener("click", () => {
+                const collapsed = nav.classList.toggle("is-collapsed");
+                toggle.setAttribute("aria-expanded", String(!collapsed));
+            });
+
+            const sections = links
+                .map((link) => document.getElementById(link.dataset.sectionLink))
+                .filter(Boolean);
+
+            const setActive = () => {
+                const offset = window.innerHeight * 0.35;
+                let current = sections[0].id;
+                sections.forEach((section) => {
+                    if (section.getBoundingClientRect().top - offset <= 0) current = section.id;
+                });
+                links.forEach((link) => link.classList.toggle("is-active", link.dataset.sectionLink === current));
+            };
+            window.addEventListener("scroll", setActive, { passive: true });
+            setActive();
+        }
+
+        function initTabs() {
+            document.querySelectorAll("[data-tabs]").forEach((group) => {
+                const tabs = Array.from(group.querySelectorAll("[data-tab]"));
+                tabs.forEach((tab) => {
+                    tab.addEventListener("click", () => {
+                        tabs.forEach((t) => {
+                            const active = t === tab;
+                            t.classList.toggle("active", active);
+                            t.setAttribute("aria-selected", String(active));
+                            const panel = document.getElementById(t.dataset.tab);
+                            if (panel) panel.classList.toggle("active", active);
+                        });
+                    });
+                });
+            });
+        }
+
+        function initGalleryFilter() {
+            const buttons = Array.from(document.querySelectorAll("[data-filter]"));
+            const cards = Array.from(document.querySelectorAll(".gallery-card"));
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const cat = btn.dataset.filter;
+                    buttons.forEach((b) => b.classList.toggle("active", b === btn));
+                    cards.forEach((card) => {
+                        card.hidden = cat !== "all" && card.dataset.cat !== cat;
+                    });
+                });
+            });
+        }
+
+        function initCopy() {
+            const btn = document.getElementById("copy-bibtex");
+            const text = document.getElementById("bibtex-text");
+            if (!btn || !text) return;
+            btn.addEventListener("click", async () => {
+                const zh = document.documentElement.getAttribute("data-ui-lang") === "zh";
+                let ok = false;
+                try {
+                    await navigator.clipboard.writeText(text.textContent);
+                    ok = true;
+                } catch (e) {
+                    const range = document.createRange();
+                    range.selectNodeContents(text);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+                const original = btn.innerHTML;
+                btn.textContent = ok ? (zh ? "已复制" : "Copied") : (zh ? "已选中，请手动复制" : "Selected — press Ctrl/⌘+C");
+                setTimeout(() => { btn.innerHTML = original; }, 1600);
+            });
+        }
+
+        // Placeholder links (GitHub / Hugging Face / report) are not wired yet; keep them from jumping to top.
+        document.querySelectorAll("[data-placeholder-link]").forEach((a) => {
+            a.addEventListener("click", (e) => {
+                if (a.getAttribute("href") === "#") e.preventDefault();
+            });
+        });
+
+        initLang();
+        initSectionNav();
+        initTabs();
+        initGalleryFilter();
+        initCopy();
+    </script>
+</body>
+</html>

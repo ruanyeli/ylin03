@@ -1,0 +1,66 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+stages: [test, notify-start, build, notify]
+
+variables:
+  BUILD_RUNNER_TAG: "iquest-eval-runner"
+  KANIKO_IMAGE: "gcr.m.daocloud.io/kaniko-project/executor:v1.23.2-debug"
+
+default:
+  tags: ["$BUILD_RUNNER_TAG"]
+  interruptible: true
+
+test:
+  stage: test
+  image: node:22-bookworm-slim
+  script:
+    - npm ci --no-audit --no-fund
+    - npm run build
+
+.notify-feishu:
+  stage: notify
+  image: python:3.12-slim-bookworm
+  allow_failure: true
+  interruptible: false
+
+notify-build-start:
+  extends: .notify-feishu
+  stage: notify-start
+  dependencies: []
+  script:
+    - python deploy/notify-build.py started
+
+
+build-image:
+  stage: build
+  image:
+    name: "$KANIKO_IMAGE"
+    entrypoint: [""]
+  retry:
+    max: 2
+    when: [runner_system_failure, script_failure]
+  script:
+    - sh deploy/build-image.sh
+  artifacts:
+    reports:
+      dotenv: image.env
+    paths: [image.env]
+    expire_in: 14 days
+
+notify-build-success:
+  extends: .notify-feishu
+  dependencies: [build-image]
+  when: on_success
+  script:
+    - python deploy/notify-build.py success
+
+notify-build-failure:
+  extends: .notify-feishu
+  dependencies: []
+  when: on_failure
+  script:
+    - python deploy/notify-build.py failed

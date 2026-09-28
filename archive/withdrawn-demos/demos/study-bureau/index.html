@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>凛冬督学局 · 摄像头督学</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 8.7l7.1-.6z"/></svg>
+    <span class="bureau-name">凛冬督学局</span>
+  </div>
+  <nav class="topbar-nav" id="topnav">
+    <a href="#home" data-view="home">玩法</a>
+    <a href="#actions" data-view="actions">手册</a>
+    <a href="#equipment" data-view="equipment">装备</a>
+    <a href="#faq" data-view="faq">常见问题</a>
+    <a href="#creators" data-view="creators">创作者</a>
+    <a href="#privacy" data-view="privacy">隐私</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="coin-display" title="军工币">
+      <span class="coin-icon">⚙</span>
+      <span class="coin-amount" id="coin-amount">0</span>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ HOME / ROSTER ============ -->
+<section class="view view-home" id="view-home">
+  <div class="home-grid">
+    <!-- LEFT: roster column -->
+    <div class="roster-col">
+      <div class="eyebrow">凛冬督学局 · 执勤名册</div>
+      <h1 class="roster-title">选择执勤督学官</h1>
+      <p class="roster-sub">名册上的每一位，都曾在无数个深夜里让手机屏幕暗下去。</p>
+
+      <div class="roster-list" id="roster-list"><!-- populated by JS --></div>
+
+      <blockquote class="roster-quote" id="roster-quote">「同志,我没有眨眼。」</blockquote>
+      <p class="roster-faint">执勤期间,督学官将随机推门巡查。摄像头仅在本机分析,绝不上传。</p>
+      <p class="roster-faint">坚持满 25 分钟,即可光荣下班;违纪三次,当日进地牢。</p>
+
+      <button class="btn-start" id="btn-start">开始执勤</button>
+    </div>
+
+    <!-- RIGHT: portrait -->
+    <div class="portrait-col">
+      <div class="portrait-frame" id="portrait-frame">
+        <!-- officer svg injected here -->
+      </div>
+      <div class="portrait-caption">
+        <div class="portrait-name" id="portrait-name">涅斯托尔·沃尔科夫</div>
+        <div class="portrait-title" id="portrait-title">现任督学官</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DUTY ============ -->
+<section class="view view-duty" id="view-duty" hidden>
+  <div class="duty-grid">
+    <div class="duty-left">
+      <div class="duty-mode-toggle">
+        <button class="mode-btn active" data-mode="pomodoro">番茄钟 25+5</button>
+        <button class="mode-btn" data-mode="endless">无尽学习</button>
+      </div>
+
+      <div class="timer-display">
+        <div class="timer-mode-label" id="timer-mode-label">番茄钟 · 专注</div>
+        <div class="timer-clock" id="timer-clock">25:00</div>
+        <div class="timer-status" id="timer-status">待命中</div>
+      </div>
+
+      <div class="duty-controls">
+        <button class="btn-primary" id="btn-clockin">上班</button>
+        <button class="btn-ghost" id="btn-break" disabled>休息</button>
+        <button class="btn-ghost" id="btn-endduty" disabled>下班</button>
+      </div>
+
+      <div class="duty-stats">
+        <div class="stat"><span class="stat-label">本次分钟</span><span class="stat-val" id="stat-min">0</span></div>
+        <div class="stat"><span class="stat-label">累计分钟</span><span class="stat-val" id="stat-total">0</span></div>
+        <div class="stat"><span class="stat-label">今日违纪</span><span class="stat-val" id="stat-viol">0</span></div>
+      </div>
+
+      <div class="camera-box">
+        <div class="camera-header">
+          <span class="rec-dot" id="rec-dot"></span>
+          <span id="camera-label">摄像头巡查 · 未启用</span>
+          <button class="btn-mini" id="btn-camera">启用摄像头</button>
+        </div>
+        <div class="camera-feed">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <canvas id="cam-canvas" hidden></canvas>
+          <div class="camera-off" id="camera-off">
+            <svg viewBox="0 0 24 24"><path d="M3 3l18 18M5 5h11a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2zm13 4l4-3v12l-4-3"/></svg>
+            <span>摄像头未启用 · 默认模拟巡查</span>
+          </div>
+          <div class="camera-overlay" id="camera-overlay" hidden></div>
+        </div>
+        <div class="camera-signals">
+          <div class="signal"><span class="signal-name">在座稳定度</span><div class="signal-bar"><div class="signal-fill" id="sig-seat"></div></div></div>
+          <div class="signal"><span class="signal-name">姿态静止度</span><div class="signal-bar"><div class="signal-fill" id="sig-posture"></div></div></div>
+          <div class="signal"><span class="signal-name">专注度</span><div class="signal-bar"><div class="signal-fill focus" id="sig-focus"></div></div></div>
+          <div class="signal"><span class="signal-name">检测状态</span><span class="signal-status" id="det-status">未启用</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="duty-right">
+      <div class="officer-stage" id="officer-stage">
+        <div class="stage-empty" id="stage-empty">督学官待命中</div>
+      </div>
+      <div class="verdict-card" id="verdict-card" hidden>
+        <div class="verdict-stamp" id="verdict-stamp">清白</div>
+        <div class="verdict-text" id="verdict-text"></div>
+      </div>
+      <div class="violation-log" id="violation-log">
+        <div class="violation-log-title">执勤档案</div>
+        <ul id="violation-list"><li class="muted">暂无记录</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ACTION LIBRARY ============ -->
+<section class="view view-actions" id="view-actions" hidden>
+  <div class="actions-head">
+    <div class="eyebrow">凛冬督学局 · 内部资料</div>
+    <h2 class="page-title">动作库影像记录</h2>
+    <p class="page-sub">每一段巡查,都是一次纪律的具象化。点击档案,播放巡查影像。</p>
+  </div>
+  <div class="dossier-card">
+    <div class="dossier-row"><span>档案编号</span><span class="mono">ЛЗ-ОБЗ-1943</span></div>
+    <div class="dossier-row"><span>机构</span><span>凛冬督学局</span></div>
+    <div class="dossier-row"><span class="red">ОБЛЕГОМОР · 凛冬督学局</span><span class="mono">СЕКРЕТНО</span></div>
+    <div class="dossier-row"><span>权限</span><span>仅限执勤督学官 · 动作库影像记录</span></div>
+  </div>
+  <div class="action-grid" id="action-grid"><!-- populated by JS --></div>
+</section>
+
+<!-- ============ FILM PLAYER MODAL ============ -->
+<div class="film-modal" id="film-modal" hidden>
+  <div class="film-stage" id="film-stage">
+    <div class="film-corridor">
+      <div class="film-vignette"></div>
+      <div class="film-lamp"></div>
+      <div class="film-officer" id="film-officer"></div>
+      <div class="film-label" id="film-label">
+        <span class="film-label-num mono" id="film-label-num">档案 01</span>
+        <span class="film-label-name" id="film-label-name">开场训话</span>
+      </div>
+      <div class="film-subtitle">
+        <div class="film-sub-red"></div>
+        <div class="film-sub-ru" id="film-sub-ru"></div>
+        <div class="film-sub-cn" id="film-sub-cn"></div>
+      </div>
+      <div class="film-endpanel" id="film-endpanel" hidden>动作库已更新</div>
+    </div>
+    <button class="film-close" id="film-close">关闭</button>
+  </div>
+</div>
+
+<!-- ============ COMRADES / CONSCRIPTION ============ -->
+<section class="view view-comrades" id="view-comrades" hidden>
+  <div class="comrades-grid">
+    <div class="comrades-panel">
+      <div class="eyebrow">战友互动</div>
+      <h2 class="page-title">呼战友陪学</h2>
+      <p class="page-sub">叫上战友一起执勤。有人在旁,手机更难掏出来。</p>
+      <div class="comrade-list" id="comrade-list"></div>
+      <button class="btn-primary" id="btn-call-comrade">呼战友陪学</button>
+    </div>
+    <div class="conscription-panel">
+      <div class="eyebrow">征召投票</div>
+      <h2 class="page-title">入伍征召</h2>
+      <p class="page-sub">为局里征召新的督学官。攒够票数,即可入伍并获得军工币奖励。</p>
+      <div class="vote-display">
+        <div class="vote-count"><span id="vote-current">0</span> / <span id="vote-needed">10</span> 票</div>
+        <div class="vote-bar"><div class="vote-fill" id="vote-fill"></div></div>
+      </div>
+      <div class="vote-candidates" id="vote-candidates"></div>
+      <button class="btn-primary" id="btn-vote">投我一票</button>
+      <div class="vote-reward" id="vote-reward" hidden>征召成功!新兵入伍,奖励已发放。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DUNGEON ============ -->
+<section class="view view-dungeon" id="view-dungeon" hidden>
+  <div class="dungeon-grid">
+    <div class="dungeon-cell" id="dungeon-cell">
+      <div class="dungeon-bars">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="dungeon-officer" id="dungeon-officer"></div>
+      <div class="dungeon-floor"></div>
+    </div>
+    <div class="dungeon-info">
+      <div class="eyebrow">违纪处置</div>
+      <h2 class="page-title">地牢</h2>
+      <p class="page-sub">当日违纪满三次,进地牢服刑。服满释放,当日计数清零。</p>
+      <div class="dungeon-status" id="dungeon-status">你今日尚未进地牢。</div>
+      <div class="dungeon-countdown" id="dungeon-countdown" hidden>剩余服刑时间 <span id="dungeon-time">00:00</span></div>
+      <button class="btn-primary" id="btn-serve" disabled>开始服刑</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BARRACKS ============ -->
+<section class="view view-barracks" id="view-barracks" hidden>
+  <div class="barracks-head">
+    <div class="eyebrow">营房</div>
+    <h2 class="page-title">我的营房</h2>
+    <p class="page-sub">自由摆放家具,打造你的督学营房。拖动家具到任意位置。</p>
+  </div>
+  <div class="barracks-toolbar">
+    <div class="furniture-palette" id="furniture-palette"></div>
+    <button class="btn-mini" id="btn-clear-barracks">清空营房</button>
+  </div>
+  <div class="barracks-room" id="barracks-room">
+    <div class="barracks-floor"></div>
+    <div class="barracks-items" id="barracks-items"></div>
+  </div>
+</section>
+
+<!-- ============ EQUIPMENT / SHOP ============ -->
+<section class="view view-equipment" id="view-equipment" hidden>
+  <div class="equipment-head">
+    <div class="eyebrow">装备处</div>
+    <h2 class="page-title">军工装备</h2>
+    <p class="page-sub">用学习赚取的军工币,购买督学官、动作与营房装饰。</p>
+  </div>
+  <div class="shop-section">
+    <h3 class="shop-section-title">督学官</h3>
+    <div class="shop-grid" id="shop-officers"></div>
+  </div>
+  <div class="shop-section">
+    <h3 class="shop-section-title">扩展动作</h3>
+    <div class="shop-grid" id="shop-actions"></div>
+  </div>
+  <div class="shop-section">
+    <h3 class="shop-section-title">营房装饰</h3>
+    <div class="shop-grid" id="shop-decorations"></div>
+  </div>
+</section>
+
+<!-- ============ SIMPLE PAGES (FAQ / CREATORS / PRIVACY) ============ -->
+<section class="view view-simple" id="view-faq" hidden>
+  <div class="simple-page">
+    <div class="eyebrow">常见问题</div>
+    <h2 class="page-title">执勤手册</h2>
+    <div class="faq-list">
+      <details><summary>摄像头会上传我的画面吗?</summary><p>不会。所有画面仅在你的浏览器本机分析,用于判断在座稳定度与姿态静止度,绝不上传、绝不存储原始画面。</p></details>
+      <details><summary>违纪是怎么判定的?</summary><p>系统通过本机信号启发式判断:在座稳定度骤降可能意味着离开座位;姿态长时间静止且画面高频变化可能意味着玩手机或打瞌睡。判定为辅助参考,不作绝对定论。</p></details>
+      <details><summary>军工币怎么赚?</summary><p>每坚持学习 1 分钟,结算 1 军工币。番茄钟完成一个专注周期额外奖励。</p></details>
+      <details><summary>进地牢后能出来吗?</summary><p>能。服刑满 5 分钟即释放,当日违纪计数清零,重新做人。</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="view view-simple" id="view-creators" hidden>
+  <div class="simple-page">
+    <div class="eyebrow">创作者</div>
+    <h2 class="page-title">关于本局</h2>
+    <p class="page-sub">凛冬督学局是一个开源的「督学」娱乐项目。所有督学官立绘均为 SVG 手绘扁平海报,致敬机构 surveillance × 苏联宣传海报 × 旧档案卷宗的视觉风格。</p>
+    <p class="page-sub">它不一定能让你爱上学习,但应该能让人不太敢摸手机。</p>
+  </div>
+</section>
+
+<section class="view view-simple" id="view-privacy" hidden>
+  <div class="simple-page">
+    <div class="eyebrow">隐私</div>
+    <h2 class="page-title">隐私承诺</h2>
+    <p class="page-sub">摄像头画面仅在本机处理,不上传、不存储原始画面。所有执勤记录、军工币、营房摆放均保存在你的浏览器 localStorage 中,清除浏览器数据即可全部删除。</p>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<!-- ============ OFFICER SVG TEMPLATES ============ -->
+<template id="tpl-volkov"><svg viewBox="0 0 320 520" class="officer-svg" data-officer="volkov">
+  <defs><linearGradient id="v-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a26"/><stop offset="1" stop-color="#1a1a10"/></linearGradient>
+  <radialGradient id="v-lamp" cx="0.7" cy="0.3" r="0.6"><stop offset="0" stop-color="#d9a441" stop-opacity="0.35"/><stop offset="1" stop-color="#d9a441" stop-opacity="0"/></radialGradient></defs>
+  <rect width="320" height="520" fill="url(#v-bg)"/>
+  <rect width="320" height="520" fill="url(#v-lamp)"/>
+  <!-- bookshelves blurred -->
+  <g opacity="0.25" fill="#0f0f08"><rect x="20" y="120" width="60" height="200"/><rect x="240" y="120" width="60" height="200"/></g>
+  <!-- body / wool uniform -->
+  <path d="M110 520 L110 300 Q110 260 160 250 Q210 260 210 300 L210 520 Z" fill="#3f4a2e"/>
+  <path d="M110 300 L160 250 L210 300 L210 320 L160 270 L110 320 Z" fill="#4a5636"/>
+  <!-- red collar -->
+  <path d="M140 252 L160 290 L180 252 L172 248 L160 268 L148 248 Z" fill="#c8102e"/>
+  <!-- medals -->
+  <circle cx="135" cy="320" r="6" fill="#d9a441"/><circle cx="150" cy="326" r="5" fill="#d9a441"/><circle cx="120" cy="330" r="4" fill="#d9a441"/>
+  <!-- neck -->
+  <rect x="148" y="230" width="24" height="30" fill="#c9a882"/>
+  <!-- head -->
+  <ellipse cx="160" cy="205" rx="38" ry="46" fill="#d9bd97"/>
+  <!-- ears -->
+  <ellipse cx="122" cy="208" rx="7" ry="11" fill="#c9a882"/><ellipse cx="198" cy="208" rx="7" ry="11" fill="#c9a882"/>
+  <!-- brows stern -->
+  <path d="M132 192 Q145 186 156 192" stroke="#2a2015" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M164 192 Q175 186 188 192" stroke="#2a2015" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="144" cy="204" rx="4" ry="3" fill="#1a1208"/><ellipse cx="176" cy="204" rx="4" ry="3" fill="#1a1208"/>
+  <!-- nose -->
+  <path d="M160 208 L156 224 L164 224 Z" fill="#c9a882"/>
+  <!-- mustache -->
+  <path d="M144 232 Q160 228 176 232 Q170 240 160 238 Q150 240 144 232 Z" fill="#3a2e1e"/>
+  <!-- mouth -->
+  <path d="M150 244 Q160 242 170 244" stroke="#8a6a4a" stroke-width="2" fill="none"/>
+  <!-- peaked cap with red band -->
+  <path d="M120 168 Q120 130 160 128 Q200 130 200 168 L200 172 L120 172 Z" fill="#2f3a22"/>
+  <rect x="118" y="160" width="84" height="12" fill="#c8102e"/>
+  <path d="M112 172 Q160 182 208 172 L208 178 Q160 188 112 178 Z" fill="#26301c"/>
+  <circle cx="160" cy="150" r="6" fill="#d9a441"/>
+</svg></template>
+
+<template id="tpl-liu"><svg viewBox="0 0 320 520" class="officer-svg" data-officer="liu">
+  <defs><linearGradient id="l-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a26"/><stop offset="1" stop-color="#1a100e"/></linearGradient>
+  <radialGradient id="l-lamp" cx="0.5" cy="0.25" r="0.6"><stop offset="0" stop-color="#d9a441" stop-opacity="0.3"/><stop offset="1" stop-color="#d9a441" stop-opacity="0"/></radialGradient></defs>
+  <rect width="320" height="520" fill="url(#l-bg)"/>
+  <rect width="320" height="520" fill="url(#l-lamp)"/>
+  <!-- blackboard -->
+  <rect x="40" y="80" width="240" height="140" rx="6" fill="#1e2a1e" stroke="#3a2e1e" stroke-width="6"/>
+  <g fill="#e8e0cc" opacity="0.7" font-family="serif" font-size="22"><text x="70" y="130">好好学习</text><text x="70" y="165">天天向上</text></g>
+  <g fill="#c8102e"><circle cx="240" cy="120" r="4"/><circle cx="255" cy="140" r="4"/><circle cx="230" cy="150" r="4"/></g>
+  <!-- body / striped dress -->
+  <path d="M120 520 L120 300 Q120 265 160 255 Q200 265 200 300 L200 520 Z" fill="#5a2a2a"/>
+  <g stroke="#e8d8c8" stroke-width="3" opacity="0.6"><path d="M130 300 L130 520"/><path d="M145 300 L145 520"/><path d="M160 300 L160 520"/><path d="M175 300 L175 520"/><path d="M190 300 L190 520"/></g>
+  <!-- collar -->
+  <path d="M140 256 L160 290 L180 256 L172 252 L160 272 L148 252 Z" fill="#c8102e"/>
+  <!-- neck -->
+  <rect x="148" y="235" width="24" height="28" fill="#e8c8a8"/>
+  <!-- head -->
+  <ellipse cx="160" cy="208" rx="36" ry="44" fill="#f0d0b0"/>
+  <ellipse cx="124" cy="210" rx="7" ry="11" fill="#e8c8a8"/><ellipse cx="196" cy="210" rx="7" ry="11" fill="#e8c8a8"/>
+  <!-- hair bun -->
+  <circle cx="160" cy="168" r="20" fill="#1a1208"/>
+  <!-- red glasses -->
+  <g stroke="#c8102e" stroke-width="3" fill="rgba(200,16,46,0.15)"><circle cx="144" cy="204" r="13"/><circle cx="176" cy="204" r="13"/></g>
+  <path d="M157 204 L163 204" stroke="#c8102e" stroke-width="3"/>
+  <!-- eyes -->
+  <circle cx="144" cy="204" r="3" fill="#1a1208"/><circle cx="176" cy="204" r="3" fill="#1a1208"/>
+  <!-- nose -->
+  <path d="M160 208 L157 222 L163 222 Z" fill="#e0b898"/>
+  <!-- mouth -->
+  <path d="M150 236 Q160 234 170 236" stroke="#a8604a" stroke-width="2" fill="none"/>
+  <!-- megaphone -->
+  <g transform="translate(205 320) rotate(15)">
+    <path d="M0 0 L50 -18 L50 18 L0 0 Z" fill="#c8102e"/>
+    <rect x="-18" y="-8" width="20" height="16" fill="#8a0b1f"/>
+    <path d="M50 -18 L70 -28 M50 18 L70 28" stroke="#c8102e" stroke-width="3" fill="none"/>
+  </g>
+</svg></template>
+
+<template id="tpl-yelena"><svg viewBox="0 0 320 520" class="officer-svg" data-officer="yelena">
+  <defs><linearGradient id="y-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2a3a"/><stop offset="1" stop-color="#10101a"/></linearGradient>
+  <radialGradient id="y-lamp" cx="0.5" cy="0.3" r="0.6"><stop offset="0" stop-color="#d9a441" stop-opacity="0.3"/><stop offset="1" stop-color="#d9a441" stop-opacity="0"/></radialGradient></defs>
+  <rect width="320" height="520" fill="url(#y-bg)"/>
+  <rect width="320" height="520" fill="url(#y-lamp)"/>
+  <!-- map on wall -->
+  <g transform="translate(60 100) rotate(-5)"><rect width="200" height="140" fill="#c9bd9c" stroke="#3a2e1e" stroke-width="4"/><path d="M20 100 Q60 60 100 90 T180 70" stroke="#8a6a3a" stroke-width="2" fill="none"/><path d="M40 120 L80 80 L120 110 L160 70" stroke="#6a4a2a" stroke-width="2" fill="none"/><circle cx="150" cy="50" r="5" fill="#c8102e"/></g>
+  <!-- old phone -->
+  <g transform="translate(230 300)"><rect width="50" height="70" rx="6" fill="#2a2015"/><rect x="8" y="10" width="34" height="40" fill="#3a3020"/><circle cx="25" cy="60" r="4" fill="#d9a441"/></g>
+  <!-- body / dark coat with belt -->
+  <path d="M115 520 L115 300 Q115 262 160 252 Q205 262 205 300 L205 520 Z" fill="#1e1e2e"/>
+  <path d="M115 300 L160 252 L205 300 L205 322 L160 272 L115 322 Z" fill="#2a2a3e"/>
+  <!-- armed belt -->
+  <rect x="115" y="360" width="90" height="14" fill="#0f0f18"/>
+  <rect x="150" y="358" width="20" height="18" fill="#d9a441"/>
+  <!-- red armband -->
+  <rect x="188" y="310" width="14" height="40" fill="#c8102e" transform="rotate(-5 195 330)"/>
+  <!-- neck -->
+  <rect x="148" y="232" width="24" height="28" fill="#d9bd97"/>
+  <!-- head -->
+  <ellipse cx="160" cy="205" rx="34" ry="42" fill="#e0c0a0"/>
+  <ellipse cx="126" cy="208" rx="7" ry="11" fill="#c9a882"/><ellipse cx="194" cy="208" rx="7" ry="11" fill="#c9a882"/>
+  <!-- hair -->
+  <path d="M126 200 Q126 160 160 158 Q194 160 194 200 L194 220 Q180 200 160 200 Q140 200 126 220 Z" fill="#1a1208"/>
+  <!-- brows cold -->
+  <path d="M132 190 Q145 184 156 190" stroke="#1a1208" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M164 190 Q175 184 188 190" stroke="#1a1208" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="144" cy="202" rx="4" ry="3" fill="#1a1208"/><ellipse cx="176" cy="202" rx="4" ry="3" fill="#1a1208"/>
+  <!-- nose -->
+  <path d="M160 206 L157 220 L163 220 Z" fill="#c9a882"/>
+  <!-- mouth stern -->
+  <path d="M150 234 Q160 232 170 234" stroke="#8a5a3a" stroke-width="2" fill="none"/>
+</svg></template>
+
+<template id="tpl-weber"><svg viewBox="0 0 320 520" class="officer-svg" data-officer="weber">
+  <defs><linearGradient id="w-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2a26"/><stop offset="1" stop-color="#121210"/></linearGradient>
+  <radialGradient id="w-lamp" cx="0.5" cy="0.3" r="0.6"><stop offset="0" stop-color="#d9a441" stop-opacity="0.3"/><stop offset="1" stop-color="#d9a441" stop-opacity="0"/></radialGradient></defs>
+  <rect width="320" height="520" fill="url(#w-bg)"/>
+  <rect width="320" height="520" fill="url(#w-lamp)"/>
+  <!-- drafting table -->
+  <rect x="30" y="380" width="260" height="14" fill="#3a2e1e"/>
+  <rect x="40" y="394" width="10" height="126" fill="#2a2015"/><rect x="270" y="394" width="10" height="126" fill="#2a2015"/>
+  <!-- blueprints -->
+  <g transform="translate(70 350) rotate(-8)"><rect width="120" height="30" fill="#3a4a6a"/><path d="M10 20 L40 8 L70 18 L100 6" stroke="#a8c8e8" stroke-width="1.5" fill="none"/><circle cx="40" cy="8" r="3" fill="#a8c8e8"/></g>
+  <!-- compass -->
+  <g transform="translate(220 360)"><path d="M0 0 L20 -30 L40 0 Z" fill="#d9a441"/><path d="M20 -30 L40 0 L20 0 Z" fill="#8a6a1e"/><circle cx="20" cy="0" r="4" fill="#3a2e1e"/></g>
+  <!-- body / gray uniform -->
+  <path d="M112 520 L112 300 Q112 260 160 250 Q208 260 208 300 L208 520 Z" fill="#4a4a44"/>
+  <path d="M112 300 L160 250 L208 300 L208 322 L160 272 L112 322 Z" fill="#565650"/>
+  <!-- red collar -->
+  <path d="M138 252 L160 292 L182 252 L174 248 L160 272 L146 248 Z" fill="#c8102e"/>
+  <!-- chest pocket -->
+  <rect x="175" y="320" width="22" height="18" fill="#3a3a34" stroke="#2a2a24" stroke-width="1"/>
+  <!-- neck -->
+  <rect x="148" y="230" width="24" height="30" fill="#c9a882"/>
+  <!-- head -->
+  <ellipse cx="160" cy="204" rx="36" ry="44" fill="#d9bd97"/>
+  <ellipse cx="124" cy="207" rx="7" ry="11" fill="#c9a882"/><ellipse cx="196" cy="207" rx="7" ry="11" fill="#c9a882"/>
+  <!-- slicked hair -->
+  <path d="M124 200 Q124 158 160 156 Q196 158 196 200 L190 190 Q160 170 130 190 Z" fill="#2a2015"/>
+  <!-- brows -->
+  <path d="M132 190 Q145 184 156 190" stroke="#2a2015" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M164 190 Q175 184 188 190" stroke="#2a2015" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="144" cy="202" rx="4" ry="3" fill="#1a1208"/><ellipse cx="176" cy="202" rx="4" ry="3" fill="#1a1208"/>
+  <!-- nose -->
+  <path d="M160 206 L157 220 L163 220 Z" fill="#c9a882"/>
+  <!-- mouth -->
+  <path d="M150 234 Q160 232 170 234" stroke="#8a6a4a" stroke-width="2" fill="none"/>
+</svg></template>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

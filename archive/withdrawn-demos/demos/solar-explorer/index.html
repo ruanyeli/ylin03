@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>太阳系探索仪 · SOLAR SYSTEM EXPLORER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Serif+SC:wght@600;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg-deep:#04070f;
+  --bg-panel:#0b1322;
+  --bg-inset:#070d18;
+  --chrome-hi:#eef2f7;
+  --chrome-1:#c9d1dc;
+  --chrome-2:#8b95a5;
+  --chrome-3:#5b6575;
+  --chrome-lo:#3a4354;
+  --ink:#d8e2f0;
+  --ink-dim:#7d8aa0;
+  --ink-faint:#4a5870;
+  --accent:#ffd76a;
+  --accent-2:#6ad4ff;
+  --led:#39ff6a;
+  --serif:'Playfair Display','Noto Serif SC',serif;
+  --mono:'IBM Plex Mono',monospace;
+  --cut:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  background:
+    radial-gradient(1200px 700px at 70% -10%, #0d1a33 0%, transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, #0a1428 0%, transparent 55%),
+    var(--bg-deep);
+  color:var(--ink);
+  font-family:var(--mono);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+/* ---------- 全局叠加层 ---------- */
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:80;opacity:.08;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainshift .9s steps(3) infinite;
+}
+@keyframes grainshift{0%{transform:translate(0,0)}33%{transform:translate(-8px,4px)}66%{transform:translate(6px,-6px)}100%{transform:translate(0,0)}}
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:81;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.20) 0 1px, transparent 1px 3px);
+}
+.vignette-global{position:fixed;inset:0;pointer-events:none;z-index:79;box-shadow:inset 0 0 180px rgba(0,0,0,.75);}
+/* ---------- 铬金属斜切边框 ---------- */
+.chrome{
+  background:linear-gradient(135deg,var(--chrome-hi) 0%,var(--chrome-1) 16%,var(--chrome-3) 36%,var(--chrome-1) 50%,var(--chrome-2) 64%,var(--chrome-hi) 80%,var(--chrome-2) 100%);
+  padding:3px;
+  clip-path:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut));
+}
+.chrome>.inner{
+  background:linear-gradient(180deg,#0e1730 0%,var(--bg-panel) 30%,var(--bg-inset) 100%);
+  clip-path:polygon(calc(var(--cut) - 2px) 0,100% 0,100% calc(100% - var(--cut) + 2px),calc(100% - var(--cut) + 2px) 100%,0 100%,0 calc(var(--cut) - 2px));
+  height:100%;
+}
+/* ---------- 顶部标题栏 ---------- */
+header{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;margin:10px 14px 0;
+  background:linear-gradient(180deg,#101b33,#0a1224);
+  border:1px solid #2a3document;
+  border:1px solid #2a3a58;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 18px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.5);
+  position:relative;z-index:10;
+}
+.brand{display:flex;align-items:baseline;gap:14px;}
+.brand-cn{
+  font-family:var(--serif);font-weight:900;font-size:26px;letter-spacing:6px;
+  color:var(--accent);
+  text-shadow:0 0 14px rgba(255,215,106,.35), 2px 2px 0 #000;
+}
+.brand-en{
+  font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--ink-dim);
+  text-transform:uppercase;
+}
+.header-right{display:flex;align-items:center;gap:14px;}
+.year-badge{
+  font-family:var(--mono);font-size:12px;color:var(--accent-2);
+  border:1px solid #2a4a6a;padding:4px 10px;letter-spacing:2px;
+  background:#060d1a;box-shadow:inset 0 1px 4px #000;
+}
+.led{
+  width:11px;height:11px;background:var(--led);
+  box-shadow:0 0 10px var(--led),0 0 22px rgba(57,255,106,.5),inset 0 0 2px #fff;
+  animation:ledblink 2s infinite;
+}
+@keyframes ledblink{
+  0%,100%{opacity:1}
+  7%{opacity:.15}11%{opacity:1}
+  52%{opacity:1}56%{opacity:.25}60%{opacity:1}
+}
+/* 凹陷物理开关 */
+.switch{
+  display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+  background:#0a1120;border:1px solid #33405a;padding:5px 9px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9), inset 0 -1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(255,255,255,.04);
+}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.switch .track{width:32px;height:15px;background:#04080f;box-shadow:inset 0 1px 4px #000, inset 0 -1px 0 rgba(255,255,255,.05);position:relative;}
+.switch .knob{
+  position:absolute;top:1px;left:1px;width:13px;height:13px;
+  background:linear-gradient(180deg,var(--chrome-hi),var(--chrome-2));
+  box-shadow:0 1px 2px #000;transition:left .15s steps(3);
+}
+.switch.on .knob{left:18px;background:linear-gradient(180deg,#fff0c0,var(--accent));}
+.switch .sw-label{font-size:11px;letter-spacing:2px;color:var(--ink-dim);}
+.switch.on .sw-label{color:var(--ink);}
+/* ---------- 主布局 ---------- */
+main{
+  flex:1;display:grid;grid-template-columns:236px 1fr 348px;gap:14px;
+  padding:14px;min-height:0;position:relative;z-index:5;
+}
+/* ---------- 左侧导航 ---------- */
+#nav{display:flex;flex-direction:column;min-height:0;}
+#nav .inner{padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.nav-title{
+  font-family:var(--serif);font-size:14px;letter-spacing:4px;color:var(--ink-dim);
+  text-align:center;padding-bottom:8px;border-bottom:1px dashed #2a3a58;margin-bottom:4px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  background:var(--bg-inset);border:1px solid #26334e;cursor:pointer;
+  color:var(--ink);text-align:left;font-family:var(--mono);
+  /* 悬停边框即时跳变：无过渡 */
+}
+.nav-item:hover{border-color:var(--chrome-hi);background:#101c33;}
+.nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.nav-item.active{
+  border-color:var(--accent);
+  background:#0d1526;
+  box-shadow:inset 0 0 14px rgba(255,215,106,.12), inset 0 2px 8px rgba(0,0,0,.85), 0 0 10px rgba(255,215,106,.12);
+}
+.nav-idx{font-size:10px;color:var(--ink-faint);width:16px;}
+.nav-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 6px currentColor;flex:0 0 auto;}
+.nav-texts{display:flex;flex-direction:column;line-height:1.15;}
+.nav-cn{font-family:var(--serif);font-weight:900;font-size:16px;letter-spacing:3px;}
+.nav-en{font-size:9px;letter-spacing:2px;color:var(--ink-dim);text-transform:uppercase;}
+.nav-cursor{
+  margin-left:auto;color:var(--accent);font-size:12px;opacity:0;
+}
+.nav-item:hover .nav-cursor,.nav-item.active .nav-cursor{opacity:1;}
+/* ---------- 中央视口 ---------- */
+#viewport{position:relative;min-width:0;min-height:0;}
+#viewport .inner{position:relative;overflow:hidden;}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+#scene:active{cursor:grabbing;}
+.crt-overlay{
+  position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 52%, rgba(2,6,16,.6) 100%);
+  animation:crtflicker 4.5s infinite;
+}
+@keyframes crtflicker{0%,100%{opacity:1}48%{opacity:.96}50%{opacity:1}52%{opacity:.94}54%{opacity:1}}
+.crt-overlay::after{
+  content:'';position:absolute;left:0;right:0;height:90px;top:-90px;
+  background:linear-gradient(180deg,transparent,rgba(140,200,255,.06),transparent);
+  animation:scanmove 8s linear infinite;
+}
+@keyframes scanmove{to{transform:translateY(calc(100vh + 200px));}}
+.vp-readout{
+  position:absolute;left:14px;bottom:10px;z-index:6;font-size:10px;letter-spacing:2px;
+  color:rgba(106,212,255,.75);text-shadow:0 0 6px rgba(106,212,255,.4);pointer-events:none;
+}
+.vp-readout .blink{animation:ledblink 1.6s infinite;}
+.vp-corner{position:absolute;width:18px;height:18px;z-index:6;pointer-events:none;border-color:rgba(216,226,240,.4);border-style:solid;border-width:0;}
+.vp-corner.tl{top:8px;left:8px;border-top-width:2px;border-left-width:2px;}
+.vp-corner.tr{top:8px;right:8px;border-top-width:2px;border-right-width:2px;}
+.vp-corner.bl{bottom:8px;left:8px;border-bottom-width:2px;border-left-width:2px;}
+.vp-corner.br{bottom:8px;right:8px;border-bottom-width:2px;border-right-width:2px;}
+/* 卫星 Tooltip */
+#tooltip{
+  position:absolute;z-index:20;pointer-events:none;display:none;
+  background:#060c18;border:1px solid var(--chrome-2);
+  outline:1px solid #1a2438;outline-offset:2px;
+  padding:8px 12px;font-size:11px;line-height:1.7;color:var(--ink);
+  box-shadow:0 4px 16px rgba(0,0,0,.7), inset 0 0 12px rgba(106,212,255,.06);
+  white-space:nowrap;
+}
+#tooltip .tt-name{color:var(--accent);font-family:var(--serif);font-weight:700;font-size:13px;letter-spacing:2px;}
+#tooltip .tt-row{color:var(--ink-dim);}
+#tooltip .tt-row b{color:var(--accent-2);font-weight:500;}
+/* ---------- 右侧资料卡 ---------- */
+#panel{min-height:0;display:flex;}
+#panel .inner{padding:18px 18px 14px;overflow-y:auto;position:relative;}
+#panel .inner::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+.p-name{
+  font-family:var(--serif);font-weight:900;font-size:34px;letter-spacing:6px;color:var(--accent);
+  text-shadow:0 0 16px rgba(255,215,106,.3),2px 2px 0 #000;line-height:1.1;
+}
+.p-en{font-size:11px;letter-spacing:4px;color:var(--ink-dim);text-transform:uppercase;margin-top:4px;}
+.dotted-line{
+  border-top:1px dashed #33456a;margin:14px 0;position:relative;
+}
+.dotted-line::after{content:'◆';position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:8px;color:#33456a;background:var(--bg-panel);padding:0 6px;}
+.field{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;gap:10px;}
+.field .fl{font-family:var(--serif);font-weight:600;font-size:14px;color:var(--ink);letter-spacing:2px;flex:0 0 auto;}
+.field .fv{font-size:13px;color:var(--accent-2);text-align:right;font-weight:500;text-shadow:0 0 8px rgba(106,212,255,.35);min-height:1em;}
+.p-desc{
+  font-family:var(--serif);font-size:14px;line-height:2;color:#b9c6da;
+  min-height:5.5em;letter-spacing:1px;
+}
+.bar-row{margin:10px 0;}
+.bar-head{display:flex;justify-content:space-between;font-size:11px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;}
+.bar-head .bv{color:var(--accent-2);}
+.bar-track{
+  height:12px;background:#050a14;border:1px solid #26334e;
+  box-shadow:inset 0 2px 5px #000;padding:2px;
+}
+.bar-fill{
+  height:100%;width:0%;
+  background:repeating-linear-gradient(90deg,var(--accent) 0 6px, #c8a24a 6px 8px);
+  box-shadow:0 0 8px rgba(255,215,106,.4);
+}
+.bar-row:nth-child(odd) .bar-fill{background:repeating-linear-gradient(90deg,var(--accent-2) 0 6px, #3a8ab0 6px 8px);box-shadow:0 0 8px rgba(106,212,255,.4);}
+.p-sec-title{
+  font-family:var(--serif);font-size:15px;letter-spacing:4px;color:var(--ink);margin:4px 0 10px;
+}
+.mission{
+  padding:8px 10px;margin-bottom:8px;background:rgba(6,12,24,.6);
+  border-left:3px solid var(--chrome-3);
+  opacity:0;transform:translateX(-8px);
+  animation:missionIn .4s ease-out forwards;
+}
+@keyframes missionIn{to{opacity:1;transform:translateX(0);}}
+.mission .m-top{display:flex;justify-content:space-between;align-items:baseline;}
+.mission .m-name{font-family:var(--serif);font-weight:700;font-size:14px;color:var(--ink);letter-spacing:1px;}
+.mission .m-year{font-size:12px;color:var(--accent);font-weight:600;}
+.mission .m-desc{font-size:11px;color:var(--ink-dim);margin-top:3px;line-height:1.6;}
+/* 滚动条 */
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:#060c18;}
+::-webkit-scrollbar-thumb{background:#2a3a58;border:1px solid #0a1120;}
+::-webkit-scrollbar-thumb:hover{background:#3a507a;}
+/* ---------- 响应式 ---------- */
+@media (max-width:980px){
+  body{overflow:auto;}
+  main{grid-template-columns:1fr;grid-template-rows:auto 60vh auto;}
+  #nav .inner{flex-direction:row;overflow-x:auto;overflow-y:hidden;}
+  .nav-item{flex:0 0 auto;}
+  .nav-title{display:none;}
+  .brand-cn{font-size:20px;}
+}
+@media (prefers-reduced-motion:reduce){
+  .grain,.crt-overlay,.crt-overlay::after,.led{animation:none !important;}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="scanlines"></div>
+<div class="vignette-global"></div>
+
+<header>
+  <div class="brand">
+    <div class="brand-cn">太阳系探索仪</div>
+    <div class="brand-en">Solar System Explorer · MK-Ⅱ</div>
+  </div>
+  <div class="header-right">
+    <div class="year-badge">© 198X</div>
+    <div class="led" title="电源指示"></div>
+    <button class="switch on" id="soundToggle" aria-pressed="true" aria-label="音效开关">
+      <span class="track"><span class="knob"></span></span><span class="sw-label">音效</span>
+    </button>
+    <button class="switch on" id="orbitToggle" aria-pressed="true" aria-label="轨道线开关">
+      <span class="track"><span class="knob"></span></span><span class="sw-label">轨道</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- 左侧导航 -->
+  <aside id="nav" class="chrome" aria-label="天体导航">
+    <div class="inner">
+      <div class="nav-title">天 体 目 录</div>
+      <!-- 由 JS 生成 -->
+    </div>
+  </aside>
+
+  <!-- 中央 3D 视口 -->
+  <section id="viewport" class="chrome" aria-label="星球展示视口">
+    <div class="inner">
+      <canvas id="scene"></canvas>
+      <div class="crt-overlay"></div>
+      <div class="vp-corner tl"></div><div class="vp-corner tr"></div>
+      <div class="vp-corner bl"></div><div class="vp-corner br"></div>
+      <div class="vp-readout" id="readout">RA 00h 00m · DEC +00° 00′ · <span class="blink">▮</span> SIGNAL LOCKED</div>
+      <div id="tooltip"></div>
+    </div>
+  </section>
+
+  <!-- 右侧资料卡 -->
+  <aside id="panel" class="chrome" aria-label="行星资料卡">
+    <div class="inner">
+      <h2 class="p-name" id="pName">地球</h2>
+      <div class="p-en" id="pEn">EARTH · TERRA</div>
+      <div class="dotted-line"></div>
+      <div id="pFields"></div>
+      <div class="dotted-line"></div>
+      <div class="p-desc" id="pDesc"></div>
+      <div class="dotted-line"></div>
+      <div id="pBars"></div>
+      <div class="dotted-line"></div>
+      <div class="p-sec-title">探测任务档案</div>
+      <div id="pMissions"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+/* ============================================================
+   太阳系探索仪 —— 静态数据
+============================================================ */
+const BODIES = [
+  {
+    id:'sun', name:'太阳', en:'SOL · THE STAR', dot:'#ffb300', radius:1.85,
+    texType:'sun', glow:0xff9a00, glowSize:1.35,
+    fields:[['直 径','1,392,700 km'],['质 量','1.989×10³⁰ kg'],['公转周期','约 2.3 亿年（绕银心）'],['自转周期','25.4 天（赤道）'],['表 面 温 度','5,505 ℃'],['已知卫星数','8 大行星']],
+    desc:'太阳系的中心恒星，占系统总质量的 99.86%。核心每秒将 6 亿吨氢聚变为氦，其光芒抵达地球需约 8 分 20 秒。',
+    bars:[['光 度 指 数',100],['日 冕 活 跃 度',92],['探 测 完 成 度',78]],
+    missions:[['SOHO 太阳观测卫星','1990','首次实现太阳内外全日冕连续成像'],['帕克太阳探测器','2018','人类首次"触摸"日冕，最近距表面 610 万公里'],['太阳轨道器','2020','首次拍摄太阳极区高清影像']],
+    moons:[]
+  },
+  {
+    id:'mercury', name:'水星', en:'MERCURY', dot:'#9a8f80', radius:1.15,
+    texType:'rocky', tex:{base:'#8a8078',spots:['#6a6058','#a89a88','#5a5048','#b8a890']},
+    fields:[['直 径','4,879 km'],['质 量','3.30×10²³ kg'],['公转周期','88.0 天'],['自转周期','58.6 天'],['平 均 温 度','167 ℃'],['已知卫星数','0']],
+    desc:'最靠近太阳的行星，昼夜温差超过 600℃。表面布满陨石坑，拥有与月球相似的外貌，几乎没有大气层。',
+    bars:[['大 气 密 度',0],['表 面 重 力',38],['探 测 完 成 度',64]],
+    missions:[['水手 10 号','1974','首次飞掠水星，拍摄 45% 表面'],['信使号 MESSENGER','2011','首颗水星轨道器，绘制全球地质图'],['贝皮可伦坡号','2018','欧日联合任务，预计 2026 入轨']],
+    moons:[]
+  },
+  {
+    id:'venus', name:'金星', en:'VENUS', dot:'#e8c878', radius:1.4,
+    texType:'rocky', tex:{base:'#c9a86a',spots:['#d8bd7e','#b8935a','#e8d49a','#a8834a']},
+    fields:[['直 径','12,104 km'],['质 量','4.87×10²⁴ kg'],['公转周期','224.7 天'],['自转周期','243 天（逆行）'],['平 均 温 度','464 ℃'],['已知卫星数','0']],
+    desc:'夜空中最亮的行星，被浓厚的二氧化碳大气与硫酸云覆盖。失控温室效应使其表面气压相当于地球深海 900 米。',
+    bars:[['大 气 密 度',90],['表 面 重 力',90],['探 测 完 成 度',71]],
+    missions:[['金星 7 号','1970','人类首次在另一行星表面成功着陆'],['麦哲伦号','1990','雷达测绘 98% 金星表面'],['拂晓号 Akatsuki','2015','日本金星气候轨道器']],
+    moons:[]
+  },
+  {
+    id:'earth', name:'地球', en:'EARTH · TERRA', dot:'#4a90d8', radius:1.45,
+    texType:'earth', glow:0x6ab0ff, glowSize:1.22,
+    fields:[['直 径','12,742 km'],['质 量','5.97×10²⁴ kg'],['公转周期','365.25 天'],['自转周期','23.93 小时'],['平 均 温 度','15 ℃'],['已知卫星数','1']],
+    desc:'目前已知唯一存在生命的行星。液态水覆盖 71% 表面，磁场屏蔽太阳风，适宜的大气层维系着万千生灵。',
+    bars:[['大 气 密 度',100],['表 面 重 力',100],['探 测 完 成 度',96]],
+    missions:[['阿波罗-联盟对接','1975','冷战期间首次国际航天合作'],['国际空间站 ISS','1998','人类在轨居住已超 20 年'],['载人龙飞船','2020','商业公司首次载人航天']],
+    moons:[
+      {name:'月球', orbit:2.35, period:'27.3 天', size:0.26, color:0xc8c8c8, speed:0.55, radiusTxt:'384,400 km'}
+    ]
+  },
+  {
+    id:'mars', name:'火星', en:'MARS', dot:'#d85a3a', radius:1.28,
+    texType:'rocky', tex:{base:'#b5533c',spots:['#7a3423','#d97a52','#5e2a1c','#e8a583'],spot:'#e8d8c8'},
+    fields:[['直 径','6,779 km'],['质 量','6.42×10²³ kg'],['公转周期','687.0 天'],['自转周期','24.62 小时'],['平 均 温 度','-63 ℃'],['已知卫星数','2']],
+    desc:'红色星球，因地表氧化铁而呈现锈红色。拥有太阳系最高的火山——奥林帕斯山，以及深邃的水手号峡谷。',
+    bars:[['大 气 密 度',1],['表 面 重 力',38],['探 测 完 成 度',88]],
+    missions:[['水手 9 号','1971','首颗行星轨道器，绘制火星全图'],['海盗 1 号','1976','首次成功着陆并搜寻生命迹象'],['天问一号','2021','中国首次火星环绕、着陆、巡视']],
+    moons:[
+      {name:'火卫一 福博斯', orbit:2.0, period:'0.32 天', size:0.15, color:0x9a8f80, speed:1.4, radiusTxt:'9,376 km'},
+      {name:'火卫二 得摩斯', orbit:2.55, period:'1.26 天', size:0.11, color:0x8a8078, speed:0.9, radiusTxt:'23,463 km'}
+    ]
+  },
+  {
+    id:'jupiter', name:'木星', en:'JUPITER', dot:'#d8a878', radius:2.0,
+    texType:'bands', tex:{base:'#c8a878',spots:['#d8b48a','#b89368','#e8d0a8','#a87f58','#c8a878'],spot:'#c85a3a'},
+    glow:0xd8a878, glowSize:1.12,
+    fields:[['直 径','139,820 km'],['质 量','1.90×10²⁷ kg'],['公转周期','11.86 年'],['自转周期','9.93 小时'],['平 均 温 度','-108 ℃'],['已知卫星数','95（已确认）']],
+    desc:'太阳系最大的行星，质量是其余七颗行星总和的 2.5 倍。大红斑是持续数百年的巨型风暴，足以吞下整个地球。',
+    bars:[['大 气 密 度',235],['表 面 重 力',253],['探 测 完 成 度',82]],
+    missions:[['先驱者 10 号','1973','首次穿越小行星带并飞掠木星'],['伽利略号','1995','首颗木星轨道器，投放大气探针'],['朱诺号','2011','极轨探测木星深层结构与极光']],
+    moons:[
+      {name:'木卫一 伊奥', orbit:2.2, period:'1.77 天', size:0.20, color:0xd8c26a, speed:1.1, radiusTxt:'421,700 km'},
+      {name:'木卫二 欧罗巴', orbit:2.65, period:'3.55 天', size:0.18, color:0xcfd8e8, speed:0.8, radiusTxt:'671,034 km'},
+      {name:'木卫三 盖尼米德', orbit:3.15, period:'7.15 天', size:0.24, color:0x9aa4b0, speed:0.6, radiusTxt:'1,070,412 km'}
+    ]
+  },
+  {
+    id:'saturn', name:'土星', en:'SATURN', dot:'#e0c898', radius:1.7,
+    texType:'bands', tex:{base:'#d8c090',spots:['#e0c898','#c8a86a','#f0dcb0','#b89858']},
+    ring:true, glow:0xe0c898, glowSize:1.1,
+    fields:[['直 径','116,460 km'],['质 量','5.68×10²⁶ kg'],['公转周期','29.46 年'],['自转周期','10.66 小时'],['平 均 温 度','-139 ℃'],['已知卫星数','146（已确认）']],
+    desc:'以壮观光环闻名，环由无数冰粒与岩石碎块构成，厚度却常不足百米。密度低于水，是太阳系最轻的行星。',
+    bars:[['大 气 密 度',65],['表 面 重 力',107],['探 测 完 成 度',90]],
+    missions:[['先驱者 11 号','1979','首次飞掠并拍摄土星环'],['旅行者 1 号','1980','发现土星环缝与复杂结构'],['卡西尼号','2004','13 年环绕探测，最终坠入土星']],
+    moons:[
+      {name:'土卫六 泰坦', orbit:2.7, period:'15.9 天', size:0.26, color:0xc8a35a, speed:0.45, radiusTxt:'1,221,870 km'},
+      {name:'土卫二 恩克拉多斯', orbit:2.15, period:'1.37 天', size:0.14, color:0xe8f0f8, speed:1.0, radiusTxt:'237,948 km'}
+    ]
+  },
+  {
+    id:'uranus', name:'天王星', en:'URANUS', dot:'#9fd8e0', radius:1.55,
+    texType:'bands', tex:{base:'#a8dce4',spots:['#9fd8e0','#8fcfd8','#b8e4ea','#98d0da']},
+    glow:0x9fd8e0, glowSize:1.12,
+    fields:[['直 径','50,724 km'],['质 量','8.68×10²⁵ kg'],['公转周期','84.01 年'],['自转周期','17.24 小时（逆行）'],['平 均 温 度','-195 ℃'],['已知卫星数','28（已确认）']],
+    desc:'"躺着"自转的冰巨星，自转轴倾斜 98 度。大气中的甲烷吸收红光，赋予其宁静的青蓝色外观。',
+    bars:[['大 气 密 度',100],['表 面 重 力',89],['探 测 完 成 度',42]],
+    missions:[['旅行者 2 号','1986','唯一一次飞掠，发现 10 颗新卫星'],['哈勃空间望远镜','1995','长期监测大气与环系统'],['韦伯望远镜','2022','拍摄最清晰天王星极区与环影像']],
+    moons:[
+      {name:'天卫三 泰坦妮亚', orbit:2.45, period:'8.7 天', size:0.18, color:0xa8b0b8, speed:0.55, radiusTxt:'435,910 km'},
+      {name:'天卫五 米兰达', orbit:2.05, period:'1.4 天', size:0.13, color:0x9aa0a8, speed:0.95, radiusTxt:'129,390 km'}
+    ]
+  },
+  {
+    id:'neptune', name:'海王星', en:'NEPTUNE', dot:'#4a6ae8', radius:1.52,
+    texType:'bands', tex:{base:'#3a5ae8',spots:['#2a4ad8','#3a5ae8','#1a3ac0','#4a6af0'],spot:'#8ab0ff'},
+    glow:0x4a6ae8, glowSize:1.12,
+    fields:[['直 径','49,244 km'],['质 量','1.02×10²⁶ kg'],['公转周期','164.8 年'],['自转周期','16.11 小时'],['平 均 温 度','-201 ℃'],['已知卫星数','16（已确认）']],
+    desc:'笔尖下发现的行星。风速可达每小时 2,100 公里，是太阳系风暴最猛烈的世界，海卫一正沿螺旋轨道缓慢坠落。',
+    bars:[['大 气 密 度',110],['表 面 重 力',114],['探 测 完 成 度',38]],
+    missions:[['旅行者 2 号','1989','首次也是迄今唯一飞掠，发现大暗斑'],['哈勃空间望远镜','2011','追踪大气风暴演变'],['韦伯望远镜','2022','揭示甲烷云层与环精细结构']],
+    moons:[
+      {name:'海卫一 特里同', orbit:2.45, period:'5.9 天', size:0.20, color:0xc8d0d8, speed:0.65, radiusTxt:'354,759 km'}
+    ]
+  }
+];
+
+/* ============================================================
+   音效合成器（Web Audio API）
+============================================================ */
+let audioCtx = null, soundOn = true;
+function ensureAudio(){
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, type, vol, when){
+  if(!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime + (when||0);
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type || 'square';
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol || 0.05, t);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(t); o.stop(t + dur + 0.03);
+}
+function beepSwitch(){ ensureAudio(); tone(620,0.07,'square',0.05,0); tone(930,0.11,'square',0.045,0.07); }
+function clickSound(){ ensureAudio(); tone(1500,0.03,'square',0.035,0); }
+
+/* ============================================================
+   打字机效果
+============================================================ */
+let typeToken = 0;
+function typeText(el, text, speed, token, done){
+  el.textContent = '';
+  let i = 0;
+  const id = setInterval(()=>{
+    if(token !== typeToken){ clearInterval(id); return; }
+    el.textContent = text.slice(0, ++i);
+    if(i >= text.length){ clearInterval(id); if(done) done(); }
+  }, speed);
+}
+function typeChain(el, text, speed, token){
+  return new Promise(res => typeText(el, text, speed, token, res));
+}
+
+/* ============================================================
+   进度条（从 0 线性填充 600ms）
+============================================================ */
+function animateBar(fill, valEl, target, token){
+  const start = performance.now(), dur = 600;
+  function step(t){
+    if(token !== typeToken) return;
+    const k = Math.min(1, (t - start) / dur);
+    const v = target * k;
+    fill.style.width = v + '%';
+    valEl.textContent = v.toFixed(1) + '%';
+    if(k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   右侧资料卡刷新
+============================================================ */
+const pName = document.getElementById('pName'),
+      pEn = document.getElementById('pEn'),
+      pFields = document.getElementById('pFields'),
+      pDesc = document.getElementById('pDesc'),
+      pBars = document.getElementById('pBars'),
+      pMissions = document.getElementById('pMissions');
+
+function updatePanel(b){
+  typeToken++;
+  const token = typeToken;
+  pName.textContent = b.name;
+  pEn.textContent = b.en;
+  /* 字段逐字打出（顺序执行） */
+  pFields.innerHTML = '';
+  let chain = Promise.resolve();
+  b.fields.forEach(f=>{
+    const row = document.createElement('div');
+    row.className = 'field';
+    row.innerHTML = '<span class="fl">' + f[0] + '</span><span class="fv"></span>';
+    pFields.appendChild(row);
+    const vEl = row.querySelector('.fv');
+    chain = chain.then(()=> typeChain(vEl, f[1], 14, token));
+  });
+  /* 简介 */
+  pDesc.textContent = '';
+  chain = chain.then(()=> typeChain(pDesc, b.desc, 11, token));
+  /* 进度条 */
+  pBars.innerHTML = '';
+  b.bars.forEach(bar=>{
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = '<div class="bar-head"><span>' + bar[0] + '</span><span class="bv">0.0%</span></div>' +
+                    '<div class="bar-track"><div class="bar-fill"></div></div>';
+    pBars.appendChild(row);
+    const fill = row.querySelector('.bar-fill'), bv = row.querySelector('.bv');
+    chain = chain.then(()=> new Promise(res=>{
+      const start = performance.now(), dur = 600;
+      (function step(t){
+        if(token !== typeToken) return res();
+        const k = Math.min(1, (t - start) / dur);
+        const v = bar[1] * k;
+        fill.style.width = v + '%';
+        bv.textContent = v.toFixed(1) + '%';
+        if(k < 1) requestAnimationFrame(step); else res();
+      })(start);
+    }));
+  });
+  /* 任务列表 */
+  pMissions.innerHTML = '';
+  b.missions.forEach((m, i)=>{
+    const li = document.createElement('div');
+    li.className = 'mission';
+    li.style.animationDelay = (i * 0.14) + 's';
+    li.innerHTML = '<div class="m-top"><span class="m-name">' + m[0] + '</span><span class="m-year">' + m[1] + '</span></div>' +
+                   '<div class="m-desc">' + m[2] + '</div>';
+    pMissions.appendChild(li);
+  });
+}
+
+/* ============================================================
+   左侧导航
+============================================================ */
+const navInner = document.querySelector('#nav .inner');
+BODIES.forEach((b, i)=>{
+  const btn = document.createElement('button');
+  btn.className = 'nav-item';
+  btn.setAttribute('aria-label', '切换到' + b.name);
+  btn.innerHTML =
+    '<span class="nav-idx">' + String(i).padStart(2,'0') + '</span>' +
+    '<span class="nav-dot" style="background:' + b.dot + ';color:' + b.dot + '"></span>' +
+    '<span class="nav-texts"><span class="nav-cn">' + b.name + '</span><span class="nav-en">' + b.en.split(' · ')[0] + '</span></span>' +
+    '<span class="nav-cursor">▸</span>';
+  btn.addEventListener('click', ()=>{ ensureAudio(); switchBody(i); });
+  navInner.appendChild(btn);
+});
+const navItems = Array.from(document.querySelectorAll('.nav-item'));
+
+/* ============================================================
+   Three.js 场景
+============================================================ */
+const canvas = document.getElementById('scene');
+const viewport = document.getElementById('viewport');
+let renderer, scene, camera, currentGroup = null, currentIndex = 3;
+let transitioning = false, orbitsVisible = true;
+let dragging = false, lastX = 0, vel = 0;
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+const clock = new THREE.Clock();
+
+try{
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+}catch(e){
+  viewport.querySelector('.inner').innerHTML =
+    '<div style="padding:40px;text-align:center;color:#d8e2f0;font-size:14px;line-height:2;">⚠ 无法初始化 WebGL 渲染器<br><span style="font-size:11px;color:#7d8aa0;">请更换支持 WebGL 的浏览器</span></div>';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.setClearColor(0x04070f);
+
+scene = new THREE.Scene();
+camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(0, 0.4, 6.2);
+camera.lookAt(0, 0, 0);
+
+/* 灯光 */
+scene.add(new THREE.AmbientLight(0x8899bb, 0.55));
+const keyLight = new THREE.DirectionalLight(0xfff2d8, 1.15);
+keyLight.position.set(5, 3, 5);
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x4a6a9a, 0.35);
+fillLight.position.set(-5, -2, -3);
+scene.add(fillLight);
+
+/* 像素星点背景 */
+(function stars(){
+  const n = 900, pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  for(let i = 0; i < n; i++){
+    const r = 18 + Math.random() * 30;
+    const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+    pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+    pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+    pos[i*3+2] = r * Math.cos(ph);
+    const c = Math.random();
+    if(c < 0.7){ col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
+    else if(c < 0.85){ col[i*3]=0.6; col[i*3+1]=0.8; col[i*3+2]=1; }
+    else { col[i*3]=1; col[i*3+1]=0.85; col[i*3+2]=0.6; }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size:0.06, vertexColors:true, sizeAttenuation:true })));
+})();
+
+/* ---------- 程序化贴图 ---------- */
+function makeTex(b){
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const R = (a, bb) => a + Math.random() * (bb - a);
+  if(b.texType === 'bands'){
+    g.fillStyle = b.tex.base; g.fillRect(0, 0, 512, 256);
+    let y = 0;
+    while(y < 256){
+      const h = R(6, 26);
+      g.fillStyle = b.tex.spots[Math.floor(Math.random() * b.tex.spots.length)];
+      g.globalAlpha = R(0.4, 0.85);
+      g.beginPath(); g.moveTo(0, y);
+      for(let x = 0; x <= 512; x += 14) g.lineTo(x, y + Math.sin(x * 0.03 + y * 0.5) * 3);
+      g.lineTo(512, y + h);
+      for(let x = 512; x >= 0; x -= 14) g.lineTo(x, y + h + Math.sin(x * 0.03 + y * 0.5) * 3);
+      g.closePath(); g.fill();
+      y += h;
+    }
+    g.globalAlpha = 1;
+    if(b.tex.spot){
+      g.fillStyle = b.tex.spot; g.globalAlpha = 0.8;
+      g.beginPath(); g.ellipse(340, 150, 34, 14, 0, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
+  }else if(b.texType === 'earth'){
+    g.fillStyle = '#123a7a'; g.fillRect(0, 0, 512, 256);
+    for(let i = 0; i < 42; i++){
+      g.fillStyle = ['#2e6b34','#3f7d3a','#6b5a34','#557a3a'][i % 4];
+      g.globalAlpha = R(0.5, 0.9);
+      const x = R(0, 512), y = R(30, 226), r = R(8, 42);
+      g.beginPath();
+      for(let a = 0; a < Math.PI * 2; a += 0.5){
+        const rr = r * R(0.5, 1.3);
+        g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.7);
+      }
+      g.closePath(); g.fill();
+    }
+    g.globalAlpha = 1;
+    g.fillStyle = '#eef4ff'; g.fillRect(0, 0, 512, 14); g.fillRect(0, 242, 512, 14);
+    for(let i = 0; i < 60; i++){
+      g.fillStyle = 'rgba(255,255,255,' + R(0.15, 0.4) + ')';
+      g.beginPath(); g.ellipse(R(0, 512), R(0, 256), R(10, 40), R(3, 8), 0, 0, 7); g.fill();
+    }
+  }else if(b.texType === 'sun'){
+    g.fillStyle = '#ff9a00'; g.fillRect(0, 0, 512, 256);
+    for(let i = 0; i < 320; i++){
+      g.fillStyle = ['#ffd23e','#ffb300','#ff7b00','#fff3b0'][i % 4];
+      g.globalAlpha = R(0.3, 0.9);
+      g.beginPath(); g.arc(R(0, 512), R(0, 256), R(2, 14), 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+  }else{ /* rocky */
+    g.fillStyle = b.tex.base; g.fillRect(0, 0, 512, 256);
+    for(let i = 0; i < 340; i++){
+      g.fillStyle = b.tex.spots[i % b.tex.spots.length];
+      g.globalAlpha = R(0.25, 0.8);
+      g.beginPath(); g.ellipse(R(0, 512), R(0, 256), R(1, 10), R(1, 7), R(0, 3), 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+    if(b.tex.spot){
+      g.fillStyle = b.tex.spot; g.globalAlpha = 0.75;
+      g.beginPath(); g.ellipse(300, 120, 26, 10, 0, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.SRGBEncoding;
+  return t;
+}
+
+/* ---------- 工具 ---------- */
+function dashedCircle(r, color, opacity, dash, gap){
+  const pts = [];
+  for(let i = 0; i <= 140; i++){
+    const a = i / 140 * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineDashedMaterial({ color, dashSize: dash || 0.08, gapSize: gap || 0.06, transparent:true, opacity: opacity === undefined ? 0.5 : opacity });
+  const line = new THREE.Line(geo, mat);
+  line.computeLineDistances();
+  return line;
+}
+function setGroupOpacity(g, o){
+  g.traverse(ob=>{
+    if(ob.material){
+      const ms = Array.isArray(ob.material) ? ob.material : [ob.material];
+      ms.forEach(m=>{
+        if(m.userData.base === undefined) m.userData.base = m.opacity;
+        m.opacity = m.userData.base * o;
+      });
+    }
+  });
+}
+function disposeGroup(g){
+  g.traverse(ob=>{
+    if(ob.geometry) ob.geometry.dispose();
+    if(ob.material){
+      const ms = Array.isArray(ob.material) ? ob.material : [ob.material];
+      ms.forEach(m=>{ if(m.map) m.map.dispose(); m.dispose(); });
+    }
+  });
+}
+function tween(dur, onUpdate, onDone, ease){
+  const start = performance.now();
+  (function step(t){
+    let k = Math.min(1, (t - start) / dur);
+    if(ease) k = ease(k);
+    onUpdate(k);
+    if(k < 1) requestAnimationFrame(step); else if(onDone) onDone();
+  })(start);
+}
+const easeIn = k => k * k * k;
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+
+/* ---------- 构建天体 ---------- */
+function buildBody(b){
+  const group = new THREE.Group();
+  group.userData.moons = [];
+  group.userData.orbits = [];
+
+  /* 星球 */
+  const tex = makeTex(b);
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: b.id === 'sun' ? 1 : 0.85,
+    metalness: 0.05,
+    emissive: b.id === 'sun' ? 0xff8800 : 0x000000,
+    emissiveMap: b.id === 'sun' ? tex : null,
+    emissiveIntensity: b.id === 'sun' ? 0.9 : 0
+  });
+  const planet = new THREE.Mesh(new THREE.SphereGeometry(b.radius, 48, 32), mat);
+  planet.name = 'planet';
+  group.add(planet);
+  group.userData.planet = planet;
+
+  /* 大气辉光 */
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: b.glow || 0x88aaff, transparent: true, opacity: 0.10,
+    side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(b.radius * (b.glowSize || 1.18), 32, 24), glowMat);
+  group.add(glow);
+
+  /* 土星环 */
+  if(b.ring){
+    const rc = document.createElement('canvas'); rc.width = 256; rc.height = 4;
+    const rg = rc.getContext('2d');
+    for(let x = 0; x < 256; x++){
+      const a = 0.25 + 0.55 * Math.abs(Math.sin(x * 0.35)) * (Math.random() > 0.12 ? 1 : 0.15);
+      rg.fillStyle = 'rgba(232,216,176,' + a.toFixed(2) + ')';
+      rg.fillRect(x, 0, 1, 4);
+    }
+    const rt = new THREE.CanvasTexture(rc);
+    const inner = b.radius * 1.45, outer = b.radius * 2.3;
+    const ringGeo = new THREE.RingGeometry(inner, outer, 96, 1);
+    const pos = ringGeo.attributes.position, uv = ringGeo.attributes.uv;
+    const v = new THREE.Vector3();
+    for(let i = 0; i < pos.count; i++){
+      v.fromBufferAttribute(pos, i);
+      const r = v.length();
+      uv.setXY(i, (r - inner) / (outer - inner), 0.5);
+    }
+    const ringMat = new THREE.MeshBasicMaterial({ map: rt, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2 - 0.28;
+    group.add(ring);
+  }
+
+  /* 卫星 + 轨道虚线 */
+  b.moons.forEach(m=>{
+    const orbitLine = dashedCircle(m.orbit, 0xd8e2f0, 0.4);
+    group.add(orbitLine);
+    group.userData.orbits.push(orbitLine);
+
+    const moonMat = new THREE.MeshStandardMaterial({ color: m.color, roughness: 0.95 });
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(m.size, 20, 14), moonMat);
+    moon.userData.moonData = m;
+    moon.userData.angle = Math.random() * Math.PI * 2;
+    moon.userData.speed = m.speed;
+    moon.userData.phase = Math.random() * 10;
+    moon.position.set(Math.cos(moon.userData.angle) * m.orbit, 0, Math.sin(moon.userData.angle) * m.orbit);
+    group.add(moon);
+    group.userData.moons.push(moon);
+  });
+
+  /* 装饰性倾斜点阵轨道圈 */
+  const deco = dashedCircle(b.radius * 2.9, 0x8fa8cc, 0.28, 0.05, 0.09);
+  deco.rotation.x = Math.PI / 2 - 0.42;
+  deco.rotation.y = 0.3;
+  group.add(deco);
+  group.userData.orbits.push(deco);
+
+  group.userData.orbits.forEach(o => o.visible = orbitsVisible);
+  return group;
+}
+
+/* ---------- 切换天体（淡出 → 淡入） ---------- */
+function switchBody(idx){
+  if(idx === currentIndex || transitioning || !currentGroup) return;
+  transitioning = true;
+  beepSwitch();
+  navItems.forEach((el, i)=> el.classList.toggle('active', i === idx));
+
+  const old = currentGroup;
+  tween(280,
+    k => { old.scale.setScalar(1 - k * 0.85); setGroupOpacity(old, 1 - k); },
+    () => {
+      scene.remove(old);
+      disposeGroup(old);
+      currentIndex = idx;
+      currentGroup = buildBody(BODIES[idx]);
+      currentGroup.scale.setScalar(0.12);
+      setGroupOpacity(currentGroup, 0);
+      scene.add(currentGroup);
+      tween(320,
+        k => { currentGroup.scale.setScalar(0.12 + 0.88 * k); setGroupOpacity(currentGroup, k); },
+        () => { transitioning = false; },
+        easeOut
+      );
+      updatePanel(BODIES[idx]);
+    },
+    easeIn
+  );
+}
+
+/* ---------- 拖拽旋转 ---------- */
+canvas.addEventListener('pointerdown', e=>{
+  dragging = true; lastX = e.clientX; vel = 0;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  if(dragging && currentGroup){
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    vel = dx * 0.005;
+    currentGroup.rotation.y += vel;
+    currentGroup.rotation.x = Math.max(-0.9, Math.min(0.9, currentGroup.rotation.x + dx * 0.0008));
+  }
+  updateTooltip(e);
+});
+window.addEventListener('pointerup', ()=>{ dragging = false; });
+
+/* ---------- 卫星悬停 Tooltip ---------- */
+function updateTooltip(e){
+  if(!currentGroup || transitioning){ tooltip.style.display = 'none'; return; }
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(currentGroup.userData.moons, false);
+  if(hits.length){
+    const m = hits[0].object.userData.moonData;
+    tooltip.innerHTML =
+      '<div class="tt-name">◈ ' + m.name + '</div>' +
+      '<div class="tt-row">轨道半径：<b>' + m.radiusTxt + '</b></div>' +
+      '<div class="tt-row">公转周期：<b>' + m.period + '</b></div>';
+    const rect = viewport.getBoundingClientRect();
+    let x = e.clientX - rect.left + 16, y = e.clientY - rect.top + 14;
+    if(x + 180 > rect.width) x -= 200;
+    if(y + 80 > rect.height) y -= 90;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.style.display = 'block';
+    canvas.style.cursor = 'pointer';
+  }else{
+    tooltip.style.display = 'none';
+    canvas.style.cursor = dragging ? 'grabbing' : 'grab';
+  }
+}
+
+/* ---------- 尺寸自适应 ---------- */
+function resize(){
+  const rect = viewport.querySelector('.inner').getBoundingClientRect();
+  const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+window.addEventListener('resize', resize);
+
+/* ---------- 渲染循环 ---------- */
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+  if(currentGroup){
+    /* 星球自转 */
+    currentGroup.userData.planet.rotation.y += 0.28 * dt;
+    /* 卫星公转 + 轻微抖动 */
+    currentGroup.userData.moons.forEach(m=>{
+      const d = m.userData;
+      d.angle += d.speed * dt;
+      m.position.set(
+        Math.cos(d.angle) * d.moonData.orbit,
+        Math.sin(t * 2.2 + d.phase) * 0.03,
+        Math.sin(d.angle) * d.moonData.orbit
+      );
+    });
+    /* 拖拽惯性 + 松手缓慢回弹 */
+    if(!dragging){
+      vel *= 0.94;
+      currentGroup.rotation.y += vel;
+      vel += -currentGroup.rotation.y * 0.0016;
+    }
+  }
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   开关控件
+============================================================ */
+const soundToggle = document.getElementById('soundToggle');
+soundToggle.addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  soundToggle.classList.toggle('on', soundOn);
+  soundToggle.setAttribute('aria-pressed', soundOn);
+  if(soundOn) clickSound();
+});
+const orbitToggle = document.getElementById('orbitToggle');
+orbitToggle.addEventListener('click', ()=>{
+  orbitsVisible = !orbitsVisible;
+  orbitToggle.classList.toggle('on', orbitsVisible);
+  orbitToggle.setAttribute('aria-pressed', orbitsVisible);
+  if(currentGroup) currentGroup.userData.orbits.forEach(o => o.visible = orbitsVisible);
+  clickSound();
+});
+
+/* ============================================================
+   初始化
+============================================================ */
+navItems[currentIndex].classList.add('active');
+currentGroup = buildBody(BODIES[currentIndex]);
+scene.add(currentGroup);
+resize();
+updatePanel(BODIES[currentIndex]);
+animate();
+</script>
+</body>
+</html>

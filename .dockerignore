@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.agents
+.codex
+*.log
+.env
+.env.*
+legacy-static-page.html
+
+# Raw recordings (~1.5GB); only public/videos is needed in the image
+video_demo/
